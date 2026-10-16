@@ -1,0 +1,64 @@
+[
+  {
+    "id": "usr_admin_meelo",
+    "username": "meelo",
+    "email": "meelo@robeats.news",
+    "passwordHash": "15b9ba022b6ed3a1f2ab10af842cacf241c23a0d19b483b20a58739998c58040",
+    "displayName": "Meelo",
+    "avatar": "https://down-vn.img.susercontent.com/file/sg-11134201-81zwv-mih44jns7q4n42",
+    "bio": "Administrator & Lead Curator of RoBeats News",
+    "role": "admin",
+    "permissions": {
+      "canManageUsers": true,
+      "canChangePasswords": true,
+      "canEditProfiles": true,
+      "canManageRoles": true,
+      "canPublishNews": true,
+      "canDeleteContent": true,
+      "canAccessAdminPanel": true
+    },
+    "createdAt": "2026-10-02T15:30:00.000Z"
+  },
+  {
+    "id": "usr_1790953986253_ncyb",
+    "username": "test",
+    "email": "test@gmail.com",
+    "passwordHash": "086d62cdefd80b99d54021ca796290a5d5f7face4080834ff4e99bf9b48c75b7",
+    "displayName": "ygivo",
+    "avatar": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTGZQUgD63kH4QQH3d7JZhYoa4hT_ZxdF0hgWv6VfFjFYpsUb4UhXGw3H0&s=10",
+    "bio": "RoBeats rhythm player",
+    "role": "staff",
+    "permissions": {
+      "canManageUsers": false,
+      "canChangePasswords": false,
+      "canEditProfiles": false,
+      "canManageRoles": false,
+      "canPublishNews": true,
+      "canDeleteContent": false,
+      "canAccessAdminPanel": false
+    },
+    "createdAt": "2026-10-02T15:13:06.253Z"
+  },
+  {
+    "id": "usr_1790958158458_0nic",
+    "username": "staff_tester",
+    "email": "staff_tester@robeats.news",
+    "passwordHash": "2664553a1e24d00415c1ebce6aab4843a14ddb9f667b222be839964efd5932ff",
+    "displayName": "Staff Tester",
+    "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+    "bio": "RoBeats rhythm player",
+    "roBeatsRank": "Rhythm Adept",
+    "preferredNoteSpeed": "1.8x",
+    "role": "staff",
+    "permissions": {
+      "canManageUsers": false,
+      "canChangePasswords": false,
+      "canEditProfiles": false,
+      "canManageRoles": false,
+      "canPublishNews": false,
+      "canDeleteContent": false,
+      "canAccessAdminPanel": false
+    },
+    "createdAt": "2026-10-02T16:22:38.458Z"
+  }
+]

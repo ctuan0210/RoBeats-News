@@ -1,0 +1,6 @@
+{
+  "name": "The Daily Chronicle - News Publishing & Editorial Desk",
+  "description": "A daily news publication and editorial workspace to create, update, and manage daily breaking news, featuring Gemini AI image generation (1K/2K/4K) and multi-turn editorial chatbot assistance.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

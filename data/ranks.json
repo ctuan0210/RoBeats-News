@@ -1,0 +1,37 @@
+[
+  {
+    "id": "star",
+    "name": "Star",
+    "iconUrl": "https://raw.githubusercontent.com/feathericons/feather/master/icons/star.svg",
+    "color": "#F59E0B",
+    "description": "Elite RoBeats master rhythm players"
+  },
+  {
+    "id": "pro",
+    "name": "Pro",
+    "iconUrl": "https://raw.githubusercontent.com/feathericons/feather/master/icons/zap.svg",
+    "color": "#A855F7",
+    "description": "High tier competitive rhythm champions"
+  },
+  {
+    "id": "amateur",
+    "name": "Amateur",
+    "iconUrl": "https://raw.githubusercontent.com/feathericons/feather/master/icons/award.svg",
+    "color": "#3B82F6",
+    "description": "Skilled rhythm players clearing advanced charts"
+  },
+  {
+    "id": "novice",
+    "name": "Novice",
+    "iconUrl": "https://raw.githubusercontent.com/feathericons/feather/master/icons/activity.svg",
+    "color": "#10B981",
+    "description": "Intermediate rhythm players learning higher speeds"
+  },
+  {
+    "id": "beginner",
+    "name": "Beginner",
+    "iconUrl": "https://raw.githubusercontent.com/feathericons/feather/master/icons/disc.svg",
+    "color": "#64748B",
+    "description": "Starting rhythm players beginning their journey"
+  }
+]

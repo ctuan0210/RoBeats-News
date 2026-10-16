@@ -1,0 +1,14 @@
+{
+  "Daily mission": {
+    "url": "",
+    "template": {
+      "titleTemplate": "Header: \" {title}\"",
+      "bodyTemplate": "## <:star:1295611495383695451> - Star missions\n{star_songs}\n\n## <:pro:1295611421866070016> - Pro missions\n{pro_songs}\n\n## <:amateur:1295611203325792287> - Amateur missions\n{amateur_songs}\n\n## <:novice:1284381928044367944> - Novice missions\n{novice_songs}\n\n## <:beginner:1284381903578861578> \n - Beginner missions\n{beginner_songs}",
+      "footerTemplate": "Poster: \"{author}\" | Post date: \"{date}\""
+    }
+  },
+  "Weekly mission": "",
+  "Weekly Leaderboard": "",
+  "New song": "",
+  "Updates": ""
+}

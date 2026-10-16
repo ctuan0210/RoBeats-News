@@ -1,0 +1,172 @@
+[
+  {
+    "name": "Rush",
+    "color": "Red",
+    "hexColor": "#EF4444",
+    "imageUrl": ""
+  },
+  {
+    "name": "Flow",
+    "color": "Purple",
+    "hexColor": "#A855F7",
+    "imageUrl": ""
+  },
+  {
+    "name": "Beat",
+    "color": "Orange",
+    "hexColor": "#F97316",
+    "imageUrl": ""
+  },
+  {
+    "name": "Vibe",
+    "color": "Green",
+    "hexColor": "#22C55E",
+    "imageUrl": ""
+  },
+  {
+    "name": "Chill",
+    "color": "Blue",
+    "hexColor": "#3B82F6",
+    "imageUrl": ""
+  },
+  {
+    "name": "Rush/Flow",
+    "color": "Red / Purple",
+    "hexColor": "#EF4444",
+    "secondaryHexColor": "#A855F7",
+    "imageUrl": ""
+  },
+  {
+    "name": "Rush/Vibe",
+    "color": "Red / Green",
+    "hexColor": "#EF4444",
+    "secondaryHexColor": "#22C55E",
+    "imageUrl": ""
+  },
+  {
+    "name": "Rush/Chill",
+    "color": "Red / Blue",
+    "hexColor": "#EF4444",
+    "secondaryHexColor": "#3B82F6",
+    "imageUrl": ""
+  },
+  {
+    "name": "Rush/Beat",
+    "color": "Red / Orange",
+    "hexColor": "#EF4444",
+    "secondaryHexColor": "#F97316",
+    "imageUrl": ""
+  },
+  {
+    "name": "Flow/Rush",
+    "color": "Purple / Red",
+    "hexColor": "#A855F7",
+    "secondaryHexColor": "#EF4444",
+    "imageUrl": ""
+  },
+  {
+    "name": "Flow/Vibe",
+    "color": "Purple / Green",
+    "hexColor": "#A855F7",
+    "secondaryHexColor": "#22C55E",
+    "imageUrl": ""
+  },
+  {
+    "name": "Flow/Chill",
+    "color": "Purple / Blue",
+    "hexColor": "#A855F7",
+    "secondaryHexColor": "#3B82F6",
+    "imageUrl": ""
+  },
+  {
+    "name": "Flow/Beat",
+    "color": "Purple / Orange",
+    "hexColor": "#A855F7",
+    "secondaryHexColor": "#F97316",
+    "imageUrl": ""
+  },
+  {
+    "name": "Vibe/Rush",
+    "color": "Green / Red",
+    "hexColor": "#22C55E",
+    "secondaryHexColor": "#EF4444",
+    "imageUrl": ""
+  },
+  {
+    "name": "Vibe/Flow",
+    "color": "Green / Purple",
+    "hexColor": "#22C55E",
+    "secondaryHexColor": "#A855F7",
+    "imageUrl": ""
+  },
+  {
+    "name": "Vibe/Chill",
+    "color": "Green / Blue",
+    "hexColor": "#22C55E",
+    "secondaryHexColor": "#3B82F6",
+    "imageUrl": ""
+  },
+  {
+    "name": "Vibe/Beat",
+    "color": "Green / Orange",
+    "hexColor": "#22C55E",
+    "secondaryHexColor": "#F97316",
+    "imageUrl": ""
+  },
+  {
+    "name": "Chill/Flow",
+    "color": "Blue / Purple",
+    "hexColor": "#3B82F6",
+    "secondaryHexColor": "#A855F7",
+    "imageUrl": ""
+  },
+  {
+    "name": "Chill/Vibe",
+    "color": "Blue / Green",
+    "hexColor": "#3B82F6",
+    "secondaryHexColor": "#22C55E",
+    "imageUrl": ""
+  },
+  {
+    "name": "Chill/Beat",
+    "color": "Blue / Orange",
+    "hexColor": "#3B82F6",
+    "secondaryHexColor": "#F97316",
+    "imageUrl": ""
+  },
+  {
+    "name": "Chill/Rush",
+    "color": "Blue / Red",
+    "hexColor": "#3B82F6",
+    "secondaryHexColor": "#EF4444",
+    "imageUrl": ""
+  },
+  {
+    "name": "Beat/Vibe",
+    "color": "Orange / Green",
+    "hexColor": "#F97316",
+    "secondaryHexColor": "#22C55E",
+    "imageUrl": ""
+  },
+  {
+    "name": "Beat/Rush",
+    "color": "Orange / Red",
+    "hexColor": "#F97316",
+    "secondaryHexColor": "#EF4444",
+    "imageUrl": ""
+  },
+  {
+    "name": "Beat/Chill",
+    "color": "Orange / Blue",
+    "hexColor": "#F97316",
+    "secondaryHexColor": "#3B82F6",
+    "imageUrl": ""
+  },
+  {
+    "name": "Beat/Flow",
+    "color": "Orange / Purple",
+    "hexColor": "#F97316",
+    "secondaryHexColor": "#A855F7",
+    "imageUrl": ""
+  }
+]
