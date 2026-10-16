@@ -5,6 +5,35 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
+import {
+  readD1Config,
+  writeD1Config,
+  isD1Ready,
+  executeD1Query,
+  initD1Tables,
+  testD1Connection,
+  syncPostToD1,
+  deletePostFromD1,
+  syncSongToD1,
+  deleteSongFromD1,
+  syncUserToD1,
+  deleteUserFromD1,
+  fetchPostsFromD1,
+  fetchSongsFromD1,
+  fetchUsersFromD1,
+  fetchRanksFromD1,
+  fetchElementsFromD1,
+  fetchWebhooksFromD1,
+  syncRankToD1,
+  syncElementToD1,
+  syncWebhookToD1,
+  fetchD1Records,
+  insertD1Record,
+  updateD1Record,
+  deleteD1Record,
+  syncLocalDataToD1,
+  D1Config,
+} from './server/d1.js';
 
 dotenv.config();
 
@@ -641,6 +670,8 @@ export interface NewsArticle {
   views: number;
   missionRank?: string;
   songs?: any[];
+  comments?: any[];
+  reactions?: any;
 }
 
 const DEFAULT_ARTICLES: NewsArticle[] = [
@@ -875,6 +906,7 @@ app.post('/api/auth/signup', (req, res) => {
         users[meeloIdx].role = 'admin';
         users[meeloIdx].permissions = getDefaultPermissions('admin');
         writeUsers(users);
+        syncUserToD1(users[meeloIdx]);
         const token = `tok_${users[meeloIdx].id}_${Date.now()}`;
         return res.status(201).json({ user: sanitizeUser(users[meeloIdx]), token });
       }
@@ -906,6 +938,7 @@ app.post('/api/auth/signup', (req, res) => {
 
     users.push(newUser);
     writeUsers(users);
+    syncUserToD1(newUser);
 
     const token = `tok_${newUser.id}_${Date.now()}`;
     res.status(201).json({ user: sanitizeUser(newUser), token });
@@ -1008,6 +1041,7 @@ app.put('/api/auth/profile', (req, res) => {
   if (preferredNoteSpeed !== undefined) users[index].preferredNoteSpeed = preferredNoteSpeed;
 
   writeUsers(users);
+  syncUserToD1(users[index]);
   res.json({ user: sanitizeUser(users[index]) });
 });
 
@@ -1035,13 +1069,20 @@ app.put('/api/auth/password', (req, res) => {
   const index = users.findIndex(u => u.id === user.id);
   users[index].passwordHash = hashPassword(newPassword);
   writeUsers(users);
+  syncUserToD1(users[index]);
 
   res.json({ success: true, message: 'Password updated successfully' });
 });
 
 // 6. List all registered accounts (Account management & switcher)
-app.get('/api/auth/users', (req, res) => {
-  const users = readUsers();
+app.get('/api/auth/users', async (req, res) => {
+  let users: any[] | null = null;
+  if (isD1Ready()) {
+    users = await fetchUsersFromD1();
+  }
+  if (!users) {
+    users = readUsers();
+  }
   res.json(users.map(sanitizeUser));
 });
 
@@ -1060,6 +1101,7 @@ app.delete('/api/auth/account/:id', (req, res) => {
   let users = readUsers();
   users = users.filter(u => u.id !== targetId);
   writeUsers(users);
+  deleteUserFromD1(targetId);
 
   res.json({ success: true, message: 'Account deleted' });
 });
@@ -1082,8 +1124,14 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 // 1. Get all users with full info for admin management
-app.get('/api/admin/users', requireAdmin, (req, res) => {
-  const users = readUsers();
+app.get('/api/admin/users', requireAdmin, async (req, res) => {
+  let users: any[] | null = null;
+  if (isD1Ready()) {
+    users = await fetchUsersFromD1();
+  }
+  if (!users) {
+    users = readUsers();
+  }
   res.json(users.map(sanitizeUser));
 });
 
@@ -1139,6 +1187,7 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
 
     users.push(newUser);
     writeUsers(users);
+    syncUserToD1(newUser);
     res.status(201).json({ user: sanitizeUser(newUser) });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to create user' });
@@ -1192,6 +1241,7 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     }
 
     writeUsers(users);
+    syncUserToD1(users[index]);
     res.json({ user: sanitizeUser(users[index]), message: 'User updated successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update user' });
@@ -1215,6 +1265,7 @@ app.put('/api/admin/users/:id/password', requireAdmin, (req, res) => {
 
     users[index].passwordHash = hashPassword(newPassword);
     writeUsers(users);
+    syncUserToD1(users[index]);
 
     res.json({ success: true, message: `Password for @${users[index].username} successfully reset` });
   } catch (err: any) {
@@ -1244,6 +1295,7 @@ app.delete('/api/admin/users/:id', requireAdmin, (req: any, res) => {
 
     users = users.filter(u => u.id !== targetId);
     writeUsers(users);
+    deleteUserFromD1(targetId);
 
     res.json({ success: true, message: `Account @${targetUser.username} deleted` });
   } catch (err: any) {
@@ -1252,9 +1304,15 @@ app.delete('/api/admin/users/:id', requireAdmin, (req: any, res) => {
 });
 
 // 7. Get Discord Webhooks configuration (Admin only)
-app.get('/api/admin/webhooks', requireAdmin, (req, res) => {
+app.get('/api/admin/webhooks', requireAdmin, async (req, res) => {
   try {
-    const webhooks = readWebhooks();
+    let webhooks = null;
+    if (isD1Ready()) {
+      webhooks = await fetchWebhooksFromD1();
+    }
+    if (!webhooks || Object.keys(webhooks).length === 0) {
+      webhooks = readWebhooks();
+    }
     res.json(webhooks);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to read webhooks' });
@@ -1291,6 +1349,15 @@ app.post('/api/admin/webhooks', requireAdmin, (req, res) => {
     }
 
     writeWebhooks(updated);
+    for (const cat of ['Daily mission', 'Weekly mission', 'Weekly Leaderboard', 'New song', 'Updates']) {
+      const item = updated[cat];
+      if (typeof item === 'string') {
+        syncWebhookToD1(cat, item, {});
+      } else if (item && typeof item === 'object') {
+        syncWebhookToD1(cat, item.url, item.template);
+      }
+    }
+
     res.json({ success: true, webhooks: updated });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update webhooks' });
@@ -1423,9 +1490,15 @@ app.get('/api/news/:id/discord-template', (req, res) => {
 });
 
 // 10. Get RoBeats Ranks list
-app.get('/api/ranks', (req, res) => {
+app.get('/api/ranks', async (req, res) => {
   try {
-    const ranks = readRanks();
+    let ranks = null;
+    if (isD1Ready()) {
+      ranks = await fetchRanksFromD1();
+    }
+    if (!ranks || ranks.length === 0) {
+      ranks = readRanks();
+    }
     res.json(ranks);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch ranks' });
@@ -1447,6 +1520,7 @@ app.put('/api/admin/ranks/:id', requireAdmin, (req, res) => {
     if (description !== undefined) ranks[idx].description = description.trim();
     if (name !== undefined) ranks[idx].name = name;
     writeRanks(ranks);
+    syncRankToD1(ranks[idx]);
     res.json({ success: true, rank: ranks[idx], ranks });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update rank' });
@@ -1461,9 +1535,177 @@ app.put('/api/admin/ranks', requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Ranks must be an array' });
     }
     writeRanks(ranks);
+    for (const r of ranks) {
+      syncRankToD1(r);
+    }
     res.json({ success: true, ranks });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update ranks' });
+  }
+});
+
+// ----------------------------------------------------
+// CLOUDFLARE D1 DATABASE ADMIN API ROUTES
+// ----------------------------------------------------
+
+// 1. Get D1 Configuration & Connection Status
+app.get('/api/admin/d1/config', requireAdmin, (req, res) => {
+  try {
+    const config = readD1Config();
+    res.json({
+      success: true,
+      config: {
+        accountId: config.accountId || '',
+        databaseId: config.databaseId || '',
+        workerUrl: config.workerUrl || '',
+        hasApiToken: Boolean(config.apiToken),
+        enabled: Boolean(config.enabled),
+        isReady: isD1Ready(config),
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to read D1 config' });
+  }
+});
+
+// 2. Save D1 Configuration
+app.post('/api/admin/d1/config', requireAdmin, (req, res) => {
+  try {
+    const { accountId, databaseId, apiToken, workerUrl, enabled } = req.body;
+    const current = readD1Config();
+    const updated = writeD1Config({
+      accountId: accountId !== undefined ? accountId.trim() : current.accountId,
+      databaseId: databaseId !== undefined ? databaseId.trim() : current.databaseId,
+      apiToken: apiToken ? apiToken.trim() : current.apiToken,
+      workerUrl: workerUrl !== undefined ? workerUrl.trim() : current.workerUrl,
+      enabled: enabled !== undefined ? Boolean(enabled) : current.enabled,
+    });
+    res.json({
+      success: true,
+      message: 'Cloudflare D1 configuration updated successfully',
+      config: {
+        accountId: updated.accountId,
+        databaseId: updated.databaseId,
+        workerUrl: updated.workerUrl || '',
+        hasApiToken: Boolean(updated.apiToken),
+        enabled: updated.enabled,
+        isReady: isD1Ready(updated),
+      },
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update D1 config' });
+  }
+});
+
+// 3. Test Connection to Cloudflare D1
+app.post('/api/admin/d1/test', requireAdmin, async (req, res) => {
+  try {
+    const { accountId, databaseId, apiToken, workerUrl } = req.body;
+    let customCfg: D1Config | undefined = undefined;
+    if (accountId || databaseId || apiToken || workerUrl) {
+      const current = readD1Config();
+      customCfg = {
+        accountId: (accountId !== undefined ? accountId : current.accountId || '').trim(),
+        databaseId: (databaseId !== undefined ? databaseId : current.databaseId || '').trim(),
+        apiToken: (apiToken !== undefined ? apiToken : current.apiToken || '').trim(),
+        workerUrl: (workerUrl !== undefined ? workerUrl : current.workerUrl || '').trim(),
+        enabled: true,
+      };
+    }
+    const result = await testD1Connection(customCfg);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Connection test failed' });
+  }
+});
+
+// 4. Initialize / Verify all D1 Tables
+app.post('/api/admin/d1/init', requireAdmin, async (req, res) => {
+  try {
+    const result = await initD1Tables();
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to initialize D1 tables' });
+  }
+});
+
+// 5. One-click migration of all local data into Cloudflare D1
+app.post('/api/admin/d1/sync-all', requireAdmin, async (req, res) => {
+  try {
+    const articles = readArticles();
+    const songs = readSongs();
+    const users = readUsers();
+    const webhooks = readWebhooks();
+    const ranks = readRanks();
+    const elements = readElements();
+
+    const result = await syncLocalDataToD1(articles, songs, users, webhooks, ranks, elements);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to sync data to D1' });
+  }
+});
+
+// 6. Direct SQL Execution Console
+app.post('/api/admin/d1/query', requireAdmin, async (req, res) => {
+  try {
+    const { sql, params } = req.body;
+    if (!sql || typeof sql !== 'string') {
+      return res.status(400).json({ error: 'SQL statement is required' });
+    }
+    const result = await executeD1Query(sql.trim(), params || []);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to execute query' });
+  }
+});
+
+// 7. Manual Records Management (Fetch records from any table)
+app.get('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
+  try {
+    const limit = Math.min(Number(req.query.limit) || 100, 200);
+    const records = await fetchD1Records(req.params.table, limit);
+    res.json({ success: true, table: req.params.table, count: records.length, records });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to fetch D1 records' });
+  }
+});
+
+// 8. Manual Insert record directly into D1
+app.post('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
+  try {
+    const record = req.body;
+    if (!record || typeof record !== 'object') {
+      return res.status(400).json({ error: 'Record data must be an object' });
+    }
+    const result = await insertD1Record(req.params.table, record);
+    res.status(201).json({ success: true, message: `Record inserted into ${req.params.table}`, result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to insert D1 record' });
+  }
+});
+
+// 9. Manual Update record directly in D1
+app.put('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
+  try {
+    const record = req.body;
+    if (!record || typeof record !== 'object') {
+      return res.status(400).json({ error: 'Record data must be an object' });
+    }
+    const result = await updateD1Record(req.params.table, req.params.id, record);
+    res.json({ success: true, message: `Record updated in ${req.params.table}`, result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update D1 record' });
+  }
+});
+
+// 10. Manual Delete record directly from D1
+app.delete('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
+  try {
+    const result = await deleteD1Record(req.params.table, req.params.id);
+    res.json({ success: true, message: `Record deleted from ${req.params.table}`, result });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to delete D1 record' });
   }
 });
 
@@ -1493,9 +1735,15 @@ app.get('/api/songs/fandom', async (req, res) => {
 // ----------------------------------------------------
 
 // 1. Get all articles with optional filters
-app.get('/api/news', (req, res) => {
+app.get('/api/news', async (req, res) => {
   try {
-    const articles = readArticles();
+    let articles: NewsArticle[] | null = null;
+    if (isD1Ready()) {
+      articles = await fetchPostsFromD1();
+    }
+    if (!articles) {
+      articles = readArticles();
+    }
     const { category, query, status, isBreaking, isFeatured } = req.query;
 
     let filtered = [...articles];
@@ -1604,6 +1852,14 @@ app.post('/api/news/:id/comments', (req, res) => {
     comments.push(newComment);
     writeComments(comments);
 
+    // Sync updated comments into post in D1
+    const articles = readArticles();
+    const art = articles.find(a => a.id === req.params.id);
+    if (art) {
+      art.comments = comments.filter(c => c.postId === art.id);
+      syncPostToD1(art);
+    }
+
     res.status(201).json(newComment);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to post comment' });
@@ -1632,6 +1888,14 @@ app.delete('/api/news/:id/comments/:commentId', (req, res) => {
 
     comments = comments.filter(c => c.id !== req.params.commentId);
     writeComments(comments);
+
+    // Sync updated comments into post in D1
+    const articles = readArticles();
+    const art = articles.find(a => a.id === req.params.id);
+    if (art) {
+      art.comments = comments.filter(c => c.postId === art.id);
+      syncPostToD1(art);
+    }
 
     res.json({ success: true, id: req.params.commentId });
   } catch (err: any) {
@@ -1708,6 +1972,7 @@ app.post('/api/news', requireStaffOrAdmin, (req, res) => {
 
     articles.unshift(newArticle);
     writeArticles(articles);
+    syncPostToD1(newArticle);
 
     res.status(201).json(newArticle);
   } catch (err: any) {
@@ -1754,6 +2019,7 @@ app.put('/api/news/:id', requireStaffOrAdmin, (req, res) => {
 
     articles[index] = updated;
     writeArticles(articles);
+    syncPostToD1(updated);
 
     res.json(updated);
   } catch (err: any) {
@@ -1784,6 +2050,7 @@ app.post('/api/news/:id/publish-webhook', requireStaffOrAdmin, async (req: any, 
       };
       articles[index] = post;
       writeArticles(articles);
+      syncPostToD1(post);
     }
 
     const webhooks = readWebhooks();
@@ -1819,6 +2086,7 @@ app.delete('/api/news/:id', requireStaffOrAdmin, (req, res) => {
 
     articles = articles.filter(a => a.id !== req.params.id);
     writeArticles(articles);
+    deletePostFromD1(req.params.id);
 
     res.json({ success: true, id: req.params.id });
   } catch (err: any) {
@@ -1841,9 +2109,15 @@ app.post('/api/news/reset-seed', (req, res) => {
 // ----------------------------------------------------
 
 // 1. Get all elements (including admin configured image URLs)
-app.get('/api/elements', (req, res) => {
+app.get('/api/elements', async (req, res) => {
   try {
-    const elements = readElements();
+    let elements = null;
+    if (isD1Ready()) {
+      elements = await fetchElementsFromD1();
+    }
+    if (!elements || elements.length === 0) {
+      elements = readElements();
+    }
     res.json(elements);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to read elements' });
@@ -1858,6 +2132,9 @@ app.put('/api/elements', requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'Expected array of element configs' });
     }
     writeElements(body);
+    for (const el of body) {
+      syncElementToD1(el);
+    }
     res.json({ success: true, elements: body });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update elements' });
@@ -1865,9 +2142,15 @@ app.put('/api/elements', requireAdmin, (req, res) => {
 });
 
 // 3. Get all songs
-app.get('/api/songs', (req, res) => {
+app.get('/api/songs', async (req, res) => {
   try {
-    const songs = readSongs();
+    let songs: any[] | null = null;
+    if (isD1Ready()) {
+      songs = await fetchSongsFromD1();
+    }
+    if (!songs) {
+      songs = readSongs();
+    }
     res.json(songs);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to read songs' });
@@ -1881,14 +2164,17 @@ app.post('/api/songs', requireAdmin, (req, res) => {
     const body = req.body;
     if (!body.title) return res.status(400).json({ error: 'Title is required' });
 
+    const primaryCover = body.coverArt || body.coverArtNormal || body.coverArtEasy || body.coverArtHard || '';
+
     const newSong = {
       id: 'custom_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       title: body.title.trim(),
       artist: body.artist?.trim() || 'Unknown Artist',
-      coverArt: body.coverArt || body.coverArtNormal || body.coverArtEasy || body.coverArtHard || '',
-      coverArtEasy: body.coverArtEasy || '',
-      coverArtNormal: body.coverArtNormal || '',
-      coverArtHard: body.coverArtHard || '',
+      mapper: body.mapper ? body.mapper.trim() : undefined,
+      coverArt: primaryCover,
+      coverArtEasy: body.coverArtEasy || primaryCover,
+      coverArtNormal: body.coverArtNormal || primaryCover,
+      coverArtHard: body.coverArtHard || primaryCover,
       difficulty: {
         easy: body.difficulty?.easy || '-',
         normal: body.difficulty?.normal || '-',
@@ -1903,13 +2189,15 @@ app.post('/api/songs', requireAdmin, (req, res) => {
 
     songs.unshift(newSong);
     writeSongs(songs);
+    syncSongToD1(newSong);
+
     res.status(201).json(newSong);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to add song' });
   }
 });
 
-// 5. Update song (Admin only)
+// 5. Update song (Admin only, can change cover art per difficulty)
 app.put('/api/songs/:id', requireAdmin, (req, res) => {
   try {
     const songs = readSongs();
@@ -1918,7 +2206,12 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
 
     const body = req.body;
     const current = songs[idx];
-    const primaryCover = body.coverArt !== undefined ? body.coverArt : (body.coverArtNormal || current.coverArt);
+
+    // Determine independent cover art per difficulty
+    const primaryCover = body.coverArt !== undefined ? body.coverArt : (current.coverArt || '');
+    const easyCover = body.coverArtEasy !== undefined ? body.coverArtEasy : (current.coverArtEasy || primaryCover);
+    const normalCover = body.coverArtNormal !== undefined ? body.coverArtNormal : (current.coverArtNormal || primaryCover);
+    const hardCover = body.coverArtHard !== undefined ? body.coverArtHard : (current.coverArtHard || primaryCover);
 
     const updated = {
       ...current,
@@ -1926,9 +2219,9 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
       artist: body.artist !== undefined ? body.artist.trim() : current.artist,
       mapper: body.mapper !== undefined ? (body.mapper ? body.mapper.trim() : undefined) : current.mapper,
       coverArt: primaryCover,
-      coverArtEasy: body.coverArtEasy !== undefined ? body.coverArtEasy : (primaryCover || current.coverArtEasy || ''),
-      coverArtNormal: body.coverArtNormal !== undefined ? body.coverArtNormal : (primaryCover || current.coverArtNormal || ''),
-      coverArtHard: body.coverArtHard !== undefined ? body.coverArtHard : (primaryCover || current.coverArtHard || ''),
+      coverArtEasy: easyCover,
+      coverArtNormal: normalCover,
+      coverArtHard: hardCover,
       difficulty: {
         easy: body.difficulty?.easy !== undefined ? body.difficulty.easy : current.difficulty.easy,
         normal: body.difficulty?.normal !== undefined ? body.difficulty.normal : current.difficulty.normal,
@@ -1941,6 +2234,39 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
 
     songs[idx] = updated;
     writeSongs(songs);
+    syncSongToD1(updated);
+
+    // Also update attached songs in existing articles so cover art per difficulty updates in posts
+    let articles = readArticles();
+    let articlesModified = false;
+    articles = articles.map(a => {
+      if (!a.songs || a.songs.length === 0) return a;
+      let songUpdatedInPost = false;
+      const updatedPostSongs = a.songs.map(ps => {
+        if (ps.id === req.params.id) {
+          songUpdatedInPost = true;
+          return {
+            ...ps,
+            coverArt: updated.coverArt,
+            coverArtEasy: updated.coverArtEasy,
+            coverArtNormal: updated.coverArtNormal,
+            coverArtHard: updated.coverArtHard,
+          };
+        }
+        return ps;
+      });
+      if (songUpdatedInPost) {
+        articlesModified = true;
+        const postUpdated = { ...a, songs: updatedPostSongs };
+        syncPostToD1(postUpdated);
+        return postUpdated;
+      }
+      return a;
+    });
+    if (articlesModified) {
+      writeArticles(articles);
+    }
+
     res.json(updated);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update song' });
@@ -1956,6 +2282,8 @@ app.delete('/api/songs/:id', requireAdmin, (req, res) => {
 
     songs = songs.filter(s => s.id !== req.params.id);
     writeSongs(songs);
+    deleteSongFromD1(req.params.id);
+
     res.json({ success: true, id: req.params.id });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to delete song' });

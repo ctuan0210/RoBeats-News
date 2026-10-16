@@ -1,0 +1,8 @@
+name = "robeats-d1-api"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-04-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "robeats-d1"
+database_id = "6582ae06-91f5-4072-a82d-a7b4585325df"

@@ -34,7 +34,8 @@ import {
   Trophy,
   Copy,
   FileText,
-  Code
+  Code,
+  Database
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { User, UserPermissions, UserRole, ElementConfig, RankConfig } from '../types';
@@ -50,6 +51,7 @@ import {
   updateRankConfig
 } from '../services/fandomService';
 import { buildDefaultElements, ELEMENT_BASE_COLORS } from '../constants/elements';
+import { CloudflareD1Tab } from './CloudflareD1Tab';
 
 interface AdminPanelProps {
   isOpen: boolean;
@@ -77,7 +79,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onOpenA
   const [isAdminAuthLoading, setIsAdminAuthLoading] = useState(false);
   const [adminAuthError, setAdminAuthError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'users' | 'elements' | 'webhooks' | 'ranks'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'elements' | 'webhooks' | 'ranks' | 'd1'>('users');
 
   const [users, setUsers] = useState<User[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -497,7 +499,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onOpenA
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/85">
       <div 
-        className="w-full max-w-4xl bg-[#0F131C] border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-5xl bg-[#0F131C] border border-cyan-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={e => e.stopPropagation()}
       >
         {/* Top Header */}
@@ -649,6 +651,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onOpenA
               >
                 <Award className="w-4 h-4 text-amber-400" />
                 <span>RoBeats Ranks (Icons & Ranks)</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('d1')}
+                className={`py-3 px-4 text-xs font-bold border-b-2 flex items-center gap-2 cursor-pointer transition-colors ${
+                  activeTab === 'd1'
+                    ? 'border-orange-400 text-orange-300'
+                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                <Database className="w-4 h-4 text-orange-400" />
+                <span>Cloudflare D1 Database</span>
               </button>
             </div>
 
@@ -1503,6 +1517,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ isOpen, onClose, onOpenA
                 </button>
               </div>
             </div>
+          )}
+
+          {/* TAB 5: CLOUDFLARE D1 DATABASE */}
+          {activeTab === 'd1' && (
+            <CloudflareD1Tab onDataChanged={loadData} />
           )}
         </div>
         </>
