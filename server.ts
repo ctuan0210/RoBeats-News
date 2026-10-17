@@ -872,7 +872,7 @@ function writeArticles(articles: NewsArticle[]) {
 // ----------------------------------------------------
 
 // 1. Sign up (registration with required fields)
-app.post('/api/auth/signup', (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/signup', (req, res) => {
   try {
     const { username, email, password, displayName, avatar, bio, roBeatsRank, preferredNoteSpeed } = req.body;
 
@@ -948,7 +948,7 @@ app.post('/api/auth/signup', (req, res) => {
 });
 
 // 2. Login
-app.post('/api/auth/login', (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/login', (req, res) => {
   try {
     const { identifier, password } = req.body;
     if (!identifier || !password) {
@@ -1007,7 +1007,7 @@ function getAuthUser(req: any): UserRecord | null {
 }
 
 // 3. Current User Session
-app.get('/api/auth/me', (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/me', (req, res) => {
   const user = getAuthUser(req);
   if (!user) {
     return res.status(401).json({ error: 'Not authenticated' });
@@ -1016,7 +1016,7 @@ app.get('/api/auth/me', (req, res) => {
 });
 
 // 4. Update Profile
-app.put('/api/auth/profile', (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/profile', (req, res) => {
   const user = getAuthUser(req);
   if (!user) {
     return res.status(401).json({ error: 'Not authenticated' });
@@ -1046,7 +1046,7 @@ app.put('/api/auth/profile', (req, res) => {
 });
 
 // 5. Change Password
-app.put('/api/auth/password', (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/password', (req, res) => {
   const user = getAuthUser(req);
   if (!user) {
     return res.status(401).json({ error: 'Not authenticated' });
@@ -1075,7 +1075,7 @@ app.put('/api/auth/password', (req, res) => {
 });
 
 // 6. List all registered accounts (Account management & switcher)
-app.get('/api/auth/users', async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/users', async (req, res) => {
   let users: any[] | null = null;
   if (isD1Ready()) {
     users = await fetchUsersFromD1();
@@ -1087,7 +1087,7 @@ app.get('/api/auth/users', async (req, res) => {
 });
 
 // 7. Delete Account
-app.delete('/api/auth/account/:id', (req, res) => {
+app.delete('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/account/:id', (req, res) => {
   const user = getAuthUser(req);
   if (!user) {
     return res.status(401).json({ error: 'Not authenticated' });
@@ -1124,7 +1124,7 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 // 1. Get all users with full info for admin management
-app.get('/api/admin/users', requireAdmin, async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users', requireAdmin, async (req, res) => {
   let users: any[] | null = null;
   if (isD1Ready()) {
     users = await fetchUsersFromD1();
@@ -1136,7 +1136,7 @@ app.get('/api/admin/users', requireAdmin, async (req, res) => {
 });
 
 // 2. Admin dashboard stats
-app.get('/api/admin/stats', requireAdmin, (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/stats', requireAdmin, (req, res) => {
   const users = readUsers();
   const articles = readArticles();
   
@@ -1155,7 +1155,7 @@ app.get('/api/admin/stats', requireAdmin, (req, res) => {
 });
 
 // 3. Admin create a new user directly
-app.post('/api/admin/users', requireAdmin, (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users', requireAdmin, (req, res) => {
   try {
     const { username, email, password, displayName, avatar, bio, role, permissions } = req.body;
     if (!username || !email || !password) {
@@ -1195,7 +1195,7 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
 });
 
 // 4. Admin update anything on another user (profile, role, permissions, username, email)
-app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users/:id', requireAdmin, (req, res) => {
   try {
     const targetId = req.params.id;
     const { displayName, username, email, avatar, bio, role, permissions } = req.body;
@@ -1249,7 +1249,7 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
 });
 
 // 5. Admin change/reset password for another user
-app.put('/api/admin/users/:id/password', requireAdmin, (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users/:id/password', requireAdmin, (req, res) => {
   try {
     const targetId = req.params.id;
     const { newPassword } = req.body;
@@ -1274,7 +1274,7 @@ app.put('/api/admin/users/:id/password', requireAdmin, (req, res) => {
 });
 
 // 6. Admin delete user
-app.delete('/api/admin/users/:id', requireAdmin, (req: any, res) => {
+app.delete('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users/:id', requireAdmin, (req: any, res) => {
   try {
     const targetId = req.params.id;
     const currentAdmin = req.adminUser;
@@ -1304,7 +1304,7 @@ app.delete('/api/admin/users/:id', requireAdmin, (req: any, res) => {
 });
 
 // 7. Get Discord Webhooks configuration (Admin only)
-app.get('/api/admin/webhooks', requireAdmin, async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/webhooks', requireAdmin, async (req, res) => {
   try {
     let webhooks = null;
     if (isD1Ready()) {
@@ -1320,7 +1320,7 @@ app.get('/api/admin/webhooks', requireAdmin, async (req, res) => {
 });
 
 // 8. Update Discord Webhooks configuration (Admin only)
-app.post('/api/admin/webhooks', requireAdmin, (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/webhooks', requireAdmin, (req, res) => {
   try {
     const body = req.body || {};
     const current = readWebhooks();
@@ -1365,7 +1365,7 @@ app.post('/api/admin/webhooks', requireAdmin, (req, res) => {
 });
 
 // 9. Test Discord Webhook (Admin only)
-app.post('/api/admin/webhooks/test', requireAdmin, async (req: any, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/webhooks/test', requireAdmin, async (req: any, res) => {
   try {
     const { category, webhookUrl } = req.body;
     const webhooks = readWebhooks();
@@ -1457,7 +1457,7 @@ app.post('/api/admin/webhooks/test', requireAdmin, async (req: any, res) => {
 });
 
 // 9.1 Get Daily Mission Webhook Template (Presets and rendered sample)
-app.get('/api/admin/webhooks/daily-mission-template', (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/webhooks/daily-mission-template', (req, res) => {
   try {
     const articles = readArticles();
     const dailyPost = articles.find(a => a.category === 'Daily mission') || articles[0];
@@ -1475,7 +1475,7 @@ app.get('/api/admin/webhooks/daily-mission-template', (req, res) => {
 });
 
 // 9.2 Get Discord Template formatted for a specific post
-app.get('/api/news/:id/discord-template', (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id/discord-template', (req, res) => {
   try {
     const articles = readArticles();
     const post = articles.find(a => a.id === req.params.id);
@@ -1490,7 +1490,7 @@ app.get('/api/news/:id/discord-template', (req, res) => {
 });
 
 // 10. Get RoBeats Ranks list
-app.get('/api/ranks', async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)ranks', async (req, res) => {
   try {
     let ranks = null;
     if (isD1Ready()) {
@@ -1506,7 +1506,7 @@ app.get('/api/ranks', async (req, res) => {
 });
 
 // 11. Update RoBeats Rank (Admin only)
-app.put('/api/admin/ranks/:id', requireAdmin, (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/ranks/:id', requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
     const { iconUrl, color, description, name } = req.body;
@@ -1528,7 +1528,7 @@ app.put('/api/admin/ranks/:id', requireAdmin, (req, res) => {
 });
 
 // 12. Batch update RoBeats Ranks (Admin only)
-app.put('/api/admin/ranks', requireAdmin, (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/ranks', requireAdmin, (req, res) => {
   try {
     const { ranks } = req.body;
     if (!Array.isArray(ranks)) {
@@ -1549,7 +1549,7 @@ app.put('/api/admin/ranks', requireAdmin, (req, res) => {
 // ----------------------------------------------------
 
 // 1. Get D1 Configuration & Connection Status
-app.get('/api/admin/d1/config', requireAdmin, (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/config', requireAdmin, (req, res) => {
   try {
     const config = readD1Config();
     res.json({
@@ -1569,7 +1569,7 @@ app.get('/api/admin/d1/config', requireAdmin, (req, res) => {
 });
 
 // 2. Save D1 Configuration
-app.post('/api/admin/d1/config', requireAdmin, (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/config', requireAdmin, (req, res) => {
   try {
     const { accountId, databaseId, apiToken, workerUrl, enabled } = req.body;
     const current = readD1Config();
@@ -1598,7 +1598,7 @@ app.post('/api/admin/d1/config', requireAdmin, (req, res) => {
 });
 
 // 3. Test Connection to Cloudflare D1
-app.post('/api/admin/d1/test', requireAdmin, async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/test', requireAdmin, async (req, res) => {
   try {
     const { accountId, databaseId, apiToken, workerUrl } = req.body;
     let customCfg: D1Config | undefined = undefined;
@@ -1620,7 +1620,7 @@ app.post('/api/admin/d1/test', requireAdmin, async (req, res) => {
 });
 
 // 4. Initialize / Verify all D1 Tables
-app.post('/api/admin/d1/init', requireAdmin, async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/init', requireAdmin, async (req, res) => {
   try {
     const result = await initD1Tables();
     res.json(result);
@@ -1630,7 +1630,7 @@ app.post('/api/admin/d1/init', requireAdmin, async (req, res) => {
 });
 
 // 5. One-click migration of all local data into Cloudflare D1
-app.post('/api/admin/d1/sync-all', requireAdmin, async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/sync-all', requireAdmin, async (req, res) => {
   try {
     const articles = readArticles();
     const songs = readSongs();
@@ -1647,7 +1647,7 @@ app.post('/api/admin/d1/sync-all', requireAdmin, async (req, res) => {
 });
 
 // 6. Direct SQL Execution Console
-app.post('/api/admin/d1/query', requireAdmin, async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/query', requireAdmin, async (req, res) => {
   try {
     const { sql, params } = req.body;
     if (!sql || typeof sql !== 'string') {
@@ -1661,7 +1661,7 @@ app.post('/api/admin/d1/query', requireAdmin, async (req, res) => {
 });
 
 // 7. Manual Records Management (Fetch records from any table)
-app.get('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/:table', requireAdmin, async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 100, 200);
     const records = await fetchD1Records(req.params.table, limit);
@@ -1672,7 +1672,7 @@ app.get('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
 });
 
 // 8. Manual Insert record directly into D1
-app.post('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/:table', requireAdmin, async (req, res) => {
   try {
     const record = req.body;
     if (!record || typeof record !== 'object') {
@@ -1686,7 +1686,7 @@ app.post('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
 });
 
 // 9. Manual Update record directly in D1
-app.put('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
   try {
     const record = req.body;
     if (!record || typeof record !== 'object') {
@@ -1700,7 +1700,7 @@ app.put('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
 });
 
 // 10. Manual Delete record directly from D1
-app.delete('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
+app.delete('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
   try {
     const result = await deleteD1Record(req.params.table, req.params.id);
     res.json({ success: true, message: `Record deleted from ${req.params.table}`, result });
@@ -1712,7 +1712,7 @@ app.delete('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) =>
 // ----------------------------------------------------
 // FANDOM MEDIAWIKI PROXY FALLBACK ROUTE
 // ----------------------------------------------------
-app.get('/api/songs/fandom', async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/fandom', async (req, res) => {
   try {
     const response = await fetch('https://robeats.fandom.com/api.php?action=parse&page=Song_List&format=json&prop=text', {
       headers: {
@@ -1735,7 +1735,7 @@ app.get('/api/songs/fandom', async (req, res) => {
 // ----------------------------------------------------
 
 // 1. Get all articles with optional filters
-app.get('/api/news', async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news', async (req, res) => {
   try {
     let articles: NewsArticle[] | null = null;
     if (isD1Ready()) {
@@ -1790,7 +1790,7 @@ app.get('/api/news', async (req, res) => {
 });
 
 // 2. Get single article
-app.get('/api/news/:id', (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id', (req, res) => {
   try {
     const articles = readArticles();
     const article = articles.find(a => a.id === req.params.id);
@@ -1813,7 +1813,7 @@ app.get('/api/news/:id', (req, res) => {
 });
 
 // 2.1 Get comments for article
-app.get('/api/news/:id/comments', (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id/comments', (req, res) => {
   try {
     const allComments = readComments();
     const postComments = allComments.filter(c => c.postId === req.params.id);
@@ -1824,7 +1824,7 @@ app.get('/api/news/:id/comments', (req, res) => {
 });
 
 // 2.2 Add comment to article (Only registered accounts can comment)
-app.post('/api/news/:id/comments', (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id/comments', (req, res) => {
   try {
     const authUser = getAuthUser(req);
     if (!authUser) {
@@ -1867,7 +1867,7 @@ app.post('/api/news/:id/comments', (req, res) => {
 });
 
 // 2.3 Delete comment (Admin, Staff, or Author)
-app.delete('/api/news/:id/comments/:commentId', (req, res) => {
+app.delete('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id/comments/:commentId', (req, res) => {
   try {
     const authUser = getAuthUser(req);
     let comments = readComments();
@@ -1917,7 +1917,7 @@ function requireStaffOrAdmin(req: any, res: any, next: any) {
 }
 
 // 3. Create article / post
-app.post('/api/news', requireStaffOrAdmin, (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news', requireStaffOrAdmin, (req, res) => {
   try {
     const articles = readArticles();
     const body = req.body;
@@ -1981,7 +1981,7 @@ app.post('/api/news', requireStaffOrAdmin, (req, res) => {
 });
 
 // 4. Update article
-app.put('/api/news/:id', requireStaffOrAdmin, (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id', requireStaffOrAdmin, (req, res) => {
   try {
     const articles = readArticles();
     const index = articles.findIndex(a => a.id === req.params.id);
@@ -2028,7 +2028,7 @@ app.put('/api/news/:id', requireStaffOrAdmin, (req, res) => {
 });
 
 // 4.1 Manual Publish Post via Discord Webhook (Staff & Admin only, during edit)
-app.post('/api/news/:id/publish-webhook', requireStaffOrAdmin, async (req: any, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id/publish-webhook', requireStaffOrAdmin, async (req: any, res) => {
   try {
     let articles = readArticles();
     const index = articles.findIndex(a => a.id === req.params.id);
@@ -2076,7 +2076,7 @@ app.post('/api/news/:id/publish-webhook', requireStaffOrAdmin, async (req: any, 
 });
 
 // 5. Delete article
-app.delete('/api/news/:id', requireStaffOrAdmin, (req, res) => {
+app.delete('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/:id', requireStaffOrAdmin, (req, res) => {
   try {
     let articles = readArticles();
     const exists = articles.some(a => a.id === req.params.id);
@@ -2095,7 +2095,7 @@ app.delete('/api/news/:id', requireStaffOrAdmin, (req, res) => {
 });
 
 // 6. Reset seed data
-app.post('/api/news/reset-seed', (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/reset-seed', (req, res) => {
   try {
     writeArticles(DEFAULT_ARTICLES);
     res.json({ success: true, count: DEFAULT_ARTICLES.length, articles: DEFAULT_ARTICLES });
@@ -2109,7 +2109,7 @@ app.post('/api/news/reset-seed', (req, res) => {
 // ----------------------------------------------------
 
 // 1. Get all elements (including admin configured image URLs)
-app.get('/api/elements', async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)elements', async (req, res) => {
   try {
     let elements = null;
     if (isD1Ready()) {
@@ -2125,7 +2125,7 @@ app.get('/api/elements', async (req, res) => {
 });
 
 // 2. Update elements URL images (Admin only)
-app.put('/api/elements', requireAdmin, (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)elements', requireAdmin, (req, res) => {
   try {
     const body = req.body;
     if (!Array.isArray(body)) {
@@ -2142,7 +2142,7 @@ app.put('/api/elements', requireAdmin, (req, res) => {
 });
 
 // 3. Get all songs
-app.get('/api/songs', async (req, res) => {
+app.get('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs', async (req, res) => {
   try {
     let songs: any[] | null = null;
     if (isD1Ready()) {
@@ -2158,7 +2158,7 @@ app.get('/api/songs', async (req, res) => {
 });
 
 // 4. Add new song (Admin only)
-app.post('/api/songs', requireAdmin, (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs', requireAdmin, (req, res) => {
   try {
     const songs = readSongs();
     const body = req.body;
@@ -2198,7 +2198,7 @@ app.post('/api/songs', requireAdmin, (req, res) => {
 });
 
 // 5. Update song (Admin only, can change cover art per difficulty)
-app.put('/api/songs/:id', requireAdmin, (req, res) => {
+app.put('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/:id', requireAdmin, (req, res) => {
   try {
     const songs = readSongs();
     const idx = songs.findIndex(s => s.id === req.params.id);
@@ -2274,7 +2274,7 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
 });
 
 // 6. Delete song (Admin only)
-app.delete('/api/songs/:id', requireAdmin, (req, res) => {
+app.delete('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/:id', requireAdmin, (req, res) => {
   try {
     let songs = readSongs();
     const exists = songs.some(s => s.id === req.params.id);
@@ -2295,7 +2295,7 @@ app.delete('/api/songs/:id', requireAdmin, (req, res) => {
 // Requirement: "You MUST add image generation to the app using model gemini-3-pro-image-preview
 // and provide an affordance for the user to specify the image size (1K, 2K, and 4K)."
 // ----------------------------------------------------
-app.post('/api/generate-image', async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)generate-image', async (req, res) => {
   try {
     const { prompt, imageSize = '1K', aspectRatio = '16:9', style } = req.body;
 
@@ -2429,7 +2429,7 @@ Your role: Polish patch notes, mission guides, song shop announcements, grammar,
 Your role: Rapid alerts for flash Song Shop sales, limited-time double XP/coin weekends, surprise song drops, and urgent game patch notes.`,
 };
 
-app.post('/api/chat', async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)chat', async (req, res) => {
   try {
     const {
       messages, // Array of { role: 'user' | 'model', content: string }
@@ -2506,7 +2506,7 @@ app.post('/api/chat', async (req, res) => {
 });
 
 // Quick AI Assistant Helper: Generate Headlines or Summaries
-app.post('/api/assist/headlines', async (req, res) => {
+app.post('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)assist/headlines', async (req, res) => {
   try {
     const { title, content, count = 4 } = req.body;
     const prompt = `You are a headline editor for The Daily Chronicle.

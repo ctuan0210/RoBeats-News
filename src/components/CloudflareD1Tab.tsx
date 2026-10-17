@@ -123,7 +123,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsLoadingRecords(true);
     setFormError(null);
     try {
-      const res = await fetch(`/api/admin/d1/records/${table}`);
+      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${table}`);
       if (res.ok) {
         const data = await res.json();
         setRecords(Array.isArray(data.records) ? data.records : []);
@@ -389,13 +389,13 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     try {
       let res: Response;
       if (editingRecordId) {
-        res = await fetch(`/api/admin/d1/records/${selectedTable}/${encodeURIComponent(editingRecordId)}`, {
+        res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${selectedTable}/${encodeURIComponent(editingRecordId)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`/api/admin/d1/records/${selectedTable}`, {
+        res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${selectedTable}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -422,7 +422,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
   const handleDeleteRecord = async (id: string) => {
     setIsDeletingRecord(true);
     try {
-      const res = await fetch(`/api/admin/d1/records/${selectedTable}/${encodeURIComponent(id)}`, {
+      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${selectedTable}/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
       const data = await res.json();

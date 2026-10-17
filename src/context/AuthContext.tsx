@@ -217,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!idToDelete) return false;
 
     try {
-      const res = await fetch(`/api/auth/account/${idToDelete}`, {
+      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)auth/account/${idToDelete}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -292,7 +292,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ success: boolean; error?: string; user?: User }> => {
     if (!token) return { success: false, error: 'Not authenticated' };
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users/${userId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -320,7 +320,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   ): Promise<{ success: boolean; error?: string }> => {
     if (!token) return { success: false, error: 'Not authenticated' };
     try {
-      const res = await fetch(`/api/admin/users/${userId}/password`, {
+      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users/${userId}/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -341,7 +341,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const adminDeleteUser = async (userId: string): Promise<{ success: boolean; error?: string }> => {
     if (!token) return { success: false, error: 'Not authenticated' };
     try {
-      const res = await fetch(`/api/admin/users/${userId}`, {
+      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users/${userId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });

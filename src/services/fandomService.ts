@@ -71,7 +71,7 @@ export async function adminAddSong(song: Omit<SongEntry, 'id'>): Promise<SongEnt
  */
 export async function adminEditSong(songId: string, updates: Partial<SongEntry>): Promise<SongEntry> {
   const token = getAuthToken();
-  const res = await fetch(`/api/songs/${encodeURIComponent(songId)}`, {
+  const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/${encodeURIComponent(songId)}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -97,7 +97,7 @@ export async function adminEditSong(songId: string, updates: Partial<SongEntry>)
  */
 export async function adminDeleteSong(songId: string): Promise<void> {
   const token = getAuthToken();
-  const res = await fetch(`/api/songs/${encodeURIComponent(songId)}`, {
+  const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/${encodeURIComponent(songId)}`, {
     method: 'DELETE',
     headers: {
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
@@ -259,7 +259,7 @@ export async function fetchPostDiscordTemplate(postId: string): Promise<{
   posterName: string;
   postDate: string;
 }> {
-  const res = await fetch(`/api/news/${postId}/discord-template`);
+  const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/${postId}/discord-template`);
   if (!res.ok) {
     throw new Error('Failed to load post Discord template');
   }
@@ -271,7 +271,7 @@ export async function fetchPostDiscordTemplate(postId: string): Promise<{
  */
 export async function publishNewsToDiscordWebhook(postId: string, updatedPayload?: any): Promise<{ success: boolean; message: string }> {
   const token = getAuthToken();
-  const res = await fetch(`/api/news/${postId}/publish-webhook`, {
+  const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/${postId}/publish-webhook`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -418,7 +418,7 @@ export async function fetchRanksList(forceRefresh: boolean = false): Promise<Ran
  */
 export async function updateRankConfig(id: string, updates: Partial<RankConfig>): Promise<RankConfig> {
   const token = getAuthToken();
-  const res = await fetch(`/api/admin/ranks/${encodeURIComponent(id)}`, {
+  const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/ranks/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
