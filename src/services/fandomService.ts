@@ -24,7 +24,7 @@ export async function fetchSongList(forceRefresh: boolean = false): Promise<Song
   }
 
   try {
-    const res = await fetch('/api/songs');
+    const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api/songs](https://robeats-d1-api.anh6052018.workers.dev/api/songs)');
     if (!res.ok) {
       throw new Error(`Failed to load songs: HTTP ${res.status}`);
     }
