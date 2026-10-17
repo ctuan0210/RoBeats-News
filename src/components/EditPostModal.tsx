@@ -326,7 +326,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
         tags: updatedTags,
       };
 
-      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/${post.id}`, {
+      const res = await fetch(`/api/news/${post.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

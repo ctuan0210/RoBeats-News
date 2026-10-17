@@ -42,9 +42,11 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
   const [subTab, setSubTab] = useState<D1SubTab>('records');
 
   // Config State
+  const [connectionMode, setConnectionMode] = useState<'direct' | 'worker'>('direct');
   const [accountId, setAccountId] = useState('');
   const [databaseId, setDatabaseId] = useState('');
   const [apiToken, setApiToken] = useState('');
+  const [workerUrl, setWorkerUrl] = useState('');
   const [hasStoredToken, setHasStoredToken] = useState(false);
   const [showTokenText, setShowTokenText] = useState(false);
   const [enabled, setEnabled] = useState(false);
@@ -94,12 +96,16 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
   const loadD1Config = async () => {
     setIsLoadingConfig(true);
     try {
-      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/config');
+      const res = await fetch('/api/admin/d1/config');
       if (res.ok) {
         const data = await res.json();
         if (data.config) {
           setAccountId(data.config.accountId || '');
           setDatabaseId(data.config.databaseId || '');
+          setWorkerUrl(data.config.workerUrl || '');
+          if (data.config.workerUrl) {
+            setConnectionMode('worker');
+          }
           setHasStoredToken(Boolean(data.config.hasApiToken));
           setEnabled(Boolean(data.config.enabled));
           setIsReady(Boolean(data.config.isReady));
@@ -117,7 +123,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsLoadingRecords(true);
     setFormError(null);
     try {
-      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${table}`);
+      const res = await fetch(`/api/admin/d1/records/${table}`);
       if (res.ok) {
         const data = await res.json();
         setRecords(Array.isArray(data.records) ? data.records : []);
@@ -148,13 +154,14 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsSavingConfig(true);
     setTestResult(null);
     try {
-      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/config', {
+      const res = await fetch('/api/admin/d1/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           accountId,
           databaseId,
           apiToken: apiToken ? apiToken : undefined,
+          workerUrl: workerUrl ? workerUrl.trim() : undefined,
           enabled,
         }),
       });
@@ -179,13 +186,14 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/test', {
+      const res = await fetch('/api/admin/d1/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           accountId: accountId || undefined,
           databaseId: databaseId || undefined,
           apiToken: apiToken || undefined,
+          workerUrl: workerUrl || undefined,
         }),
       });
       const data = await res.json();
@@ -208,7 +216,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsInitializing(true);
     setInitResult(null);
     try {
-      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/init', { method: 'POST' });
+      const res = await fetch('/api/admin/d1/init', { method: 'POST' });
       const data = await res.json();
       setInitResult({
         success: Boolean(data.success),
@@ -229,7 +237,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsSyncingAll(true);
     setSyncResult(null);
     try {
-      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/sync-all', { method: 'POST' });
+      const res = await fetch('/api/admin/d1/sync-all', { method: 'POST' });
       const data = await res.json();
       if (res.ok && data.success) {
         setSyncResult({
@@ -256,7 +264,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setSqlError(null);
     setSqlResult(null);
     try {
-      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/query', {
+      const res = await fetch('/api/admin/d1/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sql: sqlQuery.trim() }),
@@ -381,13 +389,13 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     try {
       let res: Response;
       if (editingRecordId) {
-        res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${selectedTable}/${encodeURIComponent(editingRecordId)}`, {
+        res = await fetch(`/api/admin/d1/records/${selectedTable}/${encodeURIComponent(editingRecordId)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
       } else {
-        res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${selectedTable}`, {
+        res = await fetch(`/api/admin/d1/records/${selectedTable}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -414,7 +422,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
   const handleDeleteRecord = async (id: string) => {
     setIsDeletingRecord(true);
     try {
-      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/d1/records/${selectedTable}/${encodeURIComponent(id)}`, {
+      const res = await fetch(`/api/admin/d1/records/${selectedTable}/${encodeURIComponent(id)}`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -1467,70 +1475,136 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
         {subTab === 'config' && (
           <div className="space-y-5">
             <form onSubmit={handleSaveConfig} className="bg-[#121826] border border-zinc-800 rounded-2xl p-6 space-y-5 shadow-xl">
-              <div>
-                <h4 className="font-bold text-white text-sm">Cloudflare D1 Connection Credentials</h4>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Connect your Cloudflare account to enable edge SQLite persistence and live auto-saving.
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-4">
+                <div>
+                  <h4 className="font-bold text-white text-sm">Cloudflare D1 Connection Method</h4>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Choose how this web app communicates with your Cloudflare D1 database.
+                  </p>
+                </div>
+
+                {/* Connection Mode Switcher */}
+                <div className="flex items-center gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setConnectionMode('worker')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      connectionMode === 'worker'
+                        ? 'bg-orange-500 text-zinc-950 font-bold shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    1. Cloudflare Worker URL (Easiest)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConnectionMode('direct')}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                      connectionMode === 'direct'
+                        ? 'bg-orange-500 text-zinc-950 font-bold shadow-sm'
+                        : 'text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    2. Direct REST API (Account + Token)
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Cloudflare Account ID
-                  </label>
-                  <input
-                    type="text"
-                    value={accountId}
-                    onChange={e => setAccountId(e.target.value)}
-                    placeholder="e.g. 9a8b7c6d5e4f3a2b1c0d..."
-                    className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-orange-500"
-                  />
-                  <span className="text-[10px] text-zinc-500 mt-1 block">
-                    Found on your Cloudflare dashboard overview in the right sidebar.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    D1 Database ID (UUID)
-                  </label>
-                  <input
-                    type="text"
-                    value={databaseId}
-                    onChange={e => setDatabaseId(e.target.value)}
-                    placeholder="e.g. 12345678-1234-1234-1234-123456789abc"
-                    className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-orange-500"
-                  />
-                  <span className="text-[10px] text-zinc-500 mt-1 block">
-                    Created via <code className="text-orange-300">wrangler d1 create robeats-d1</code>
-                  </span>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Cloudflare API Token
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showTokenText ? 'text' : 'password'}
-                      value={apiToken}
-                      onChange={e => setApiToken(e.target.value)}
-                      placeholder={hasStoredToken ? '(Stored securely - enter new token to update)' : 'Enter Cloudflare API token with D1 permissions'}
-                      className="w-full px-3 py-2 pr-10 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-orange-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowTokenText(!showTokenText)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer"
-                    >
-                      {showTokenText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
+                {connectionMode === 'worker' ? (
+                  <div className="p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-bold text-white">
+                          Deployed Cloudflare Worker URL
+                        </label>
+                        <span className="text-[10px] text-orange-400 font-mono">
+                          No API token required!
+                        </span>
+                      </div>
+                      <input
+                        type="url"
+                        value={workerUrl}
+                        onChange={e => setWorkerUrl(e.target.value)}
+                        placeholder="https://robeats-d1-api.<your-subdomain>.workers.dev"
+                        className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700/80 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-orange-500"
+                      />
+                    </div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed">
+                      💡 <strong>How to get this:</strong> In your terminal, run <code className="text-orange-300 font-bold">wrangler deploy</code>. Wrangler will print your live URL (e.g. <code className="text-cyan-300">https://robeats-d1-api.xxx.workers.dev</code>). Paste it here, check "Enable", and click Save!
+                    </p>
                   </div>
-                  <span className="text-[10px] text-zinc-500 mt-1 block">
-                    Created at <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noreferrer" className="text-cyan-400 underline">dash.cloudflare.com/profile/api-tokens</a> with <strong>D1:Edit</strong> permission.
-                  </span>
-                </div>
+                ) : (
+                  <>
+                    <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-[11px] text-zinc-300 flex items-center justify-between gap-2">
+                      <span>💡 <strong>Quick tip:</strong> Run <code className="text-cyan-300 font-mono font-bold">wrangler whoami</code> in your terminal to see your <strong>Account ID</strong> instantly.</span>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard('wrangler whoami', 'whoami')}
+                        className="px-2 py-1 bg-zinc-900 border border-zinc-750 rounded text-[10px] text-zinc-300 hover:text-white shrink-0 cursor-pointer"
+                      >
+                        {copiedKey === 'whoami' ? 'Copied' : 'Copy command'}
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                        Cloudflare Account ID
+                      </label>
+                      <input
+                        type="text"
+                        value={accountId}
+                        onChange={e => setAccountId(e.target.value)}
+                        placeholder="e.g. 9a8b7c6d5e4f3a2b1c0d..."
+                        className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-orange-500"
+                      />
+                      <span className="text-[10px] text-zinc-500 mt-1 block">
+                        Found by running <code className="text-zinc-400">wrangler whoami</code> or in Cloudflare dashboard right sidebar.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                        D1 Database ID (UUID)
+                      </label>
+                      <input
+                        type="text"
+                        value={databaseId}
+                        onChange={e => setDatabaseId(e.target.value)}
+                        placeholder="e.g. 6582ae06-91f5-4072-a82d-a7b4585325df"
+                        className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-orange-500"
+                      />
+                      <span className="text-[10px] text-zinc-500 mt-1 block">
+                        Configured in your <code className="text-orange-300">wrangler.toml</code>.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                        Cloudflare API Token
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showTokenText ? 'text' : 'password'}
+                          value={apiToken}
+                          onChange={e => setApiToken(e.target.value)}
+                          placeholder={hasStoredToken ? '(Stored securely - enter new token to update)' : 'Enter Cloudflare API token with D1 permissions'}
+                          className="w-full px-3 py-2 pr-10 bg-zinc-900 border border-zinc-800 rounded-xl text-white font-mono text-xs focus:outline-none focus:border-orange-500"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowTokenText(!showTokenText)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 cursor-pointer"
+                        >
+                          {showTokenText ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <span className="text-[10px] text-zinc-500 mt-1 block">
+                        Create at <a href="https://dash.cloudflare.com/profile/api-tokens" target="_blank" rel="noreferrer" className="text-cyan-400 underline">dash.cloudflare.com/profile/api-tokens</a> with <strong>D1:Edit</strong> permission.
+                      </span>
+                    </div>
+                  </>
+                )}
 
                 <div className="pt-2">
                   <label className="flex items-center gap-2 cursor-pointer">

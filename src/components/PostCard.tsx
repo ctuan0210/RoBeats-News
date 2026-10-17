@@ -134,7 +134,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     setCommentError(null);
 
     try {
-      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/${post.id}/comments`, {
+      const res = await fetch(`/api/news/${post.id}/comments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -163,7 +163,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   // Delete comment handler
   const handleDeleteComment = async (commentId: string) => {
     try {
-      const res = await fetch(`[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/${post.id}/comments/${commentId}`, {
+      const res = await fetch(`/api/news/${post.id}/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
