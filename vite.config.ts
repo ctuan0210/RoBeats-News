@@ -21,14 +21,6 @@ export default defineConfig(() => {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
-      // Bổ sung Proxy để tự động chuyển hướng mọi API call lên Cloudflare Worker
-      proxy: {
-        '/api': {
-          target: 'https://robeats-d1-api.anh6052018.workers.dev',
-          changeOrigin: true,
-          secure: true,
-        },
-      },
     },
     build: {
       outDir: path.resolve(projectRoot, 'dist'),
