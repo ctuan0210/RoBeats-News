@@ -11,7 +11,6 @@ export interface D1Config {
   accountId: string;
   databaseId: string;
   apiToken: string;
-  workerUrl?: string;
   enabled: boolean;
 }
 
@@ -24,7 +23,6 @@ export function readD1Config(): D1Config {
         accountId: parsed.accountId || process.env.CLOUDFLARE_ACCOUNT_ID || '',
         databaseId: parsed.databaseId || process.env.CLOUDFLARE_DATABASE_ID || '',
         apiToken: parsed.apiToken || process.env.CLOUDFLARE_API_TOKEN || '',
-        workerUrl: parsed.workerUrl || process.env.CLOUDFLARE_WORKER_URL || '',
         enabled: parsed.enabled !== undefined ? Boolean(parsed.enabled) : (process.env.CLOUDFLARE_D1_ENABLED === 'true'),
       };
     }
@@ -36,7 +34,6 @@ export function readD1Config(): D1Config {
     accountId: process.env.CLOUDFLARE_ACCOUNT_ID || '',
     databaseId: process.env.CLOUDFLARE_DATABASE_ID || '',
     apiToken: process.env.CLOUDFLARE_API_TOKEN || '',
-    workerUrl: process.env.CLOUDFLARE_WORKER_URL || '',
     enabled: process.env.CLOUDFLARE_D1_ENABLED === 'true',
   };
 }
@@ -47,7 +44,6 @@ export function writeD1Config(config: Partial<D1Config>): D1Config {
     accountId: config.accountId !== undefined ? config.accountId.trim() : current.accountId,
     databaseId: config.databaseId !== undefined ? config.databaseId.trim() : current.databaseId,
     apiToken: config.apiToken !== undefined ? config.apiToken.trim() : current.apiToken,
-    workerUrl: config.workerUrl !== undefined ? config.workerUrl.trim() : (current.workerUrl || ''),
     enabled: config.enabled !== undefined ? Boolean(config.enabled) : current.enabled,
   };
 
@@ -65,13 +61,11 @@ export function writeD1Config(config: Partial<D1Config>): D1Config {
 
 export function isD1Ready(config?: D1Config): boolean {
   const cfg = config || readD1Config();
-  if (!cfg.enabled) return false;
-  if (cfg.workerUrl && cfg.workerUrl.trim().length > 0) return true;
-  return Boolean(cfg.accountId && cfg.databaseId && cfg.apiToken);
+  return Boolean(cfg.enabled && cfg.accountId && cfg.databaseId && cfg.apiToken);
 }
 
 /**
- * Executes a SQL query against the Cloudflare D1 REST API or deployed Cloudflare Worker.
+ * Executes a SQL query against the Cloudflare D1 REST API.
  */
 export async function executeD1Query(
   sql: string,
@@ -79,41 +73,8 @@ export async function executeD1Query(
   customConfig?: D1Config
 ): Promise<{ success: boolean; results?: any[]; meta?: any; error?: string }> {
   const cfg = customConfig || readD1Config();
-
-  // Route via deployed Cloudflare Worker if workerUrl is provided
-  if (cfg.workerUrl && cfg.workerUrl.trim().length > 0) {
-    let cleanWorker = cfg.workerUrl.trim().replace(/\/+$/, '');
-    cleanWorker = cleanWorker.replace(/\/api\/d1\/query\/?$/, '');
-    cleanWorker = cleanWorker.replace(/\/d1\/query\/?$/, '');
-    cleanWorker = cleanWorker.replace(/\/query\/?$/, '');
-    cleanWorker = cleanWorker.replace(/\/api\/?$/, '');
-
-    const endpoint = `${cleanWorker}/api/d1/query`;
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sql, params }),
-    });
-
-    const body: any = await response.json().catch(() => ({}));
-    if (!response.ok || !body.success) {
-      throw new Error(body.error || `Cloudflare Worker error (${response.status}) at ${endpoint}`);
-    }
-
-    return {
-      success: true,
-      results: body.results || [],
-      meta: body.meta || {},
-    };
-  }
-
-  // Direct Cloudflare D1 REST API route
   if (!cfg.accountId || !cfg.databaseId || !cfg.apiToken) {
-    const missing: string[] = [];
-    if (!cfg.accountId) missing.push('Account ID (run `wrangler whoami` in your terminal)');
-    if (!cfg.databaseId) missing.push('Database ID (UUID)');
-    if (!cfg.apiToken) missing.push('Cloudflare API Token');
-    throw new Error(`Cloudflare D1 credentials incomplete. Missing: ${missing.join(', ')}. Alternatively, you can use your deployed Cloudflare Worker URL.`);
+    throw new Error('Cloudflare D1 credentials (Account ID, Database ID, and API Token) are missing or incomplete.');
   }
 
   const endpoint = `https://api.cloudflare.com/client/v4/accounts/${cfg.accountId}/d1/database/${cfg.databaseId}/query`;
@@ -227,17 +188,10 @@ export async function initD1Tables(): Promise<{ success: boolean; message: strin
  */
 export async function testD1Connection(customConfig?: D1Config): Promise<{ success: boolean; message: string; databaseName?: string }> {
   const cfg = customConfig || readD1Config();
-  const hasWorker = Boolean(cfg.workerUrl && cfg.workerUrl.trim().length > 0);
-  const hasDirectCreds = Boolean(cfg.accountId && cfg.databaseId && cfg.apiToken);
-
-  if (!hasWorker && !hasDirectCreds) {
-    const missing: string[] = [];
-    if (!cfg.accountId) missing.push('Account ID (run `wrangler whoami` in your terminal)');
-    if (!cfg.databaseId) missing.push('Database ID');
-    if (!cfg.apiToken) missing.push('Cloudflare API Token (from dash.cloudflare.com/profile/api-tokens)');
+  if (!cfg.accountId || !cfg.databaseId || !cfg.apiToken) {
     return {
       success: false,
-      message: `Incomplete credentials: Missing ${missing.join(', ')}. Or provide your deployed Cloudflare Worker URL.`,
+      message: 'Cloudflare credentials are incomplete. Please provide Account ID, Database ID, and API Token.',
     };
   }
 
@@ -245,23 +199,9 @@ export async function testD1Connection(customConfig?: D1Config): Promise<{ succe
     const res = await executeD1Query('SELECT 1 as connected, datetime(\'now\') as current_time;', [], cfg);
     return {
       success: true,
-      message: `Connection successfully verified with Cloudflare D1! Database responded at: ${res.results?.[0]?.current_time || 'OK'}`,
+      message: `Connection established with Cloudflare D1! Current database time: ${res.results?.[0]?.current_time || 'OK'}`,
     };
   } catch (err: any) {
-    if (hasWorker && cfg.workerUrl) {
-      try {
-        let rootUrl = cfg.workerUrl.trim().replace(/\/+$/, '');
-        rootUrl = rootUrl.replace(/\/api\/d1\/query\/?$/, '').replace(/\/api\/?$/, '');
-        const pingRes = await fetch(rootUrl);
-        const pingData: any = await pingRes.json().catch(() => ({}));
-        if (pingRes.ok && pingData.status === 'online') {
-          return {
-            success: false,
-            message: `Worker is reachable and online, but D1 database query failed: ${err.message}. Please initialize the tables using the button below.`,
-          };
-        }
-      } catch (_) {}
-    }
     return {
       success: false,
       message: err.message || 'Failed to connect to Cloudflare D1',

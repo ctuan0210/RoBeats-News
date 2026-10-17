@@ -1557,7 +1557,6 @@ app.get('/api/admin/d1/config', requireAdmin, (req, res) => {
       config: {
         accountId: config.accountId || '',
         databaseId: config.databaseId || '',
-        workerUrl: config.workerUrl || '',
         hasApiToken: Boolean(config.apiToken),
         enabled: Boolean(config.enabled),
         isReady: isD1Ready(config),
@@ -1571,13 +1570,12 @@ app.get('/api/admin/d1/config', requireAdmin, (req, res) => {
 // 2. Save D1 Configuration
 app.post('/api/admin/d1/config', requireAdmin, (req, res) => {
   try {
-    const { accountId, databaseId, apiToken, workerUrl, enabled } = req.body;
+    const { accountId, databaseId, apiToken, enabled } = req.body;
     const current = readD1Config();
     const updated = writeD1Config({
       accountId: accountId !== undefined ? accountId.trim() : current.accountId,
       databaseId: databaseId !== undefined ? databaseId.trim() : current.databaseId,
       apiToken: apiToken ? apiToken.trim() : current.apiToken,
-      workerUrl: workerUrl !== undefined ? workerUrl.trim() : current.workerUrl,
       enabled: enabled !== undefined ? Boolean(enabled) : current.enabled,
     });
     res.json({
@@ -1586,7 +1584,6 @@ app.post('/api/admin/d1/config', requireAdmin, (req, res) => {
       config: {
         accountId: updated.accountId,
         databaseId: updated.databaseId,
-        workerUrl: updated.workerUrl || '',
         hasApiToken: Boolean(updated.apiToken),
         enabled: updated.enabled,
         isReady: isD1Ready(updated),
@@ -1600,15 +1597,14 @@ app.post('/api/admin/d1/config', requireAdmin, (req, res) => {
 // 3. Test Connection to Cloudflare D1
 app.post('/api/admin/d1/test', requireAdmin, async (req, res) => {
   try {
-    const { accountId, databaseId, apiToken, workerUrl } = req.body;
+    const { accountId, databaseId, apiToken } = req.body;
     let customCfg: D1Config | undefined = undefined;
-    if (accountId || databaseId || apiToken || workerUrl) {
+    if (accountId || databaseId || apiToken) {
       const current = readD1Config();
       customCfg = {
-        accountId: (accountId !== undefined ? accountId : current.accountId || '').trim(),
-        databaseId: (databaseId !== undefined ? databaseId : current.databaseId || '').trim(),
-        apiToken: (apiToken !== undefined ? apiToken : current.apiToken || '').trim(),
-        workerUrl: (workerUrl !== undefined ? workerUrl : current.workerUrl || '').trim(),
+        accountId: (accountId || current.accountId || '').trim(),
+        databaseId: (databaseId || current.databaseId || '').trim(),
+        apiToken: (apiToken || current.apiToken || '').trim(),
         enabled: true,
       };
     }

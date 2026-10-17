@@ -49,6 +49,18 @@ export default {
       if (!env.DB) {
         return error('D1 database binding "DB" is missing in wrangler.toml', 500);
       }
+      if (path === '/' && method === 'GET') {
+        return json({
+          success: true,
+          message: "RoBeats API is running!",
+          endpoints: [
+            "/api/songs",
+            "/api/news",
+            "/api/users",
+            "/api/d1/records/:table"
+          ]
+        });
+      }
 
       // ----------------------------------------------------
       // 1. Health check & table initialization
@@ -395,4 +407,3 @@ export default {
     }
   },
 };
-
