@@ -53,7 +53,7 @@ export default {
       // ----------------------------------------------------
       // 1. Health check & table initialization
       // ----------------------------------------------------
-      if (path === '[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)d1/init' && method === 'POST') {
+      if (path === '/api/d1/init' && method === 'POST') {
         await env.DB.exec(`
           CREATE TABLE IF NOT EXISTS posts (
             id TEXT PRIMARY KEY,
@@ -125,7 +125,7 @@ export default {
       // ----------------------------------------------------
       // 2. Posts Endpoints (GET, POST, PUT, DELETE)
       // ----------------------------------------------------
-      if (path === '[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news' || path === '[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)posts') {
+      if (path === '/api/news' || path === '/api/posts') {
         if (method === 'GET') {
           const { results } = await env.DB.prepare(
             'SELECT * FROM posts ORDER BY publishedAt DESC LIMIT 100'
@@ -185,7 +185,7 @@ export default {
       }
 
       // Single Post delete
-      if ((path.startsWith('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)news/') || path.startsWith('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)posts/')) && method === 'DELETE') {
+      if ((path.startsWith('/api/news/') || path.startsWith('/api/posts/')) && method === 'DELETE') {
         const id = path.split('/').pop();
         await env.DB.prepare('DELETE FROM posts WHERE id = ?').bind(id).run();
         return json({ success: true, id });
@@ -194,7 +194,7 @@ export default {
       // ----------------------------------------------------
       // 3. Songs Endpoints (with cover art per difficulty)
       // ----------------------------------------------------
-      if (path === '[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs') {
+      if (path === '/api/songs') {
         if (method === 'GET') {
           const { results } = await env.DB.prepare('SELECT * FROM songs ORDER BY dateAdded DESC').all();
           const songs = results.map(r => ({
@@ -244,8 +244,8 @@ export default {
       }
 
       // Update Song (Cover Art per difficulty)
-      if (path.startsWith('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/') && method === 'PUT') {
-        const id = path.replace('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/', '');
+      if (path.startsWith('/api/songs/') && method === 'PUT') {
+        const id = path.replace('/api/songs/', '');
         const body = await request.json();
         
         await env.DB.prepare(`
@@ -279,8 +279,8 @@ export default {
       }
 
       // Delete Song
-      if (path.startsWith('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/') && method === 'DELETE') {
-        const id = path.replace('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)songs/', '');
+      if (path.startsWith('/api/songs/') && method === 'DELETE') {
+        const id = path.replace('/api/songs/', '');
         await env.DB.prepare('DELETE FROM songs WHERE id = ?').bind(id).run();
         return json({ success: true, id });
       }
@@ -288,7 +288,7 @@ export default {
       // ----------------------------------------------------
       // 4. Users & Accounts Endpoints
       // ----------------------------------------------------
-      if (path === '[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)users' || path === '[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)admin/users') {
+      if (path === '/api/users' || path === '/api/admin/users') {
         if (method === 'GET') {
           const { results } = await env.DB.prepare('SELECT id, username, role, permissions, avatar, bio, createdAt FROM users').all();
           const users = results.map(r => ({
@@ -328,7 +328,7 @@ export default {
       // ----------------------------------------------------
       // 5. Custom D1 SQL query execution (Admin Console)
       // ----------------------------------------------------
-      if (path === '[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)d1/query' && method === 'POST') {
+      if (path === '/api/d1/query' && method === 'POST') {
         const body = await request.json();
         const sql = body.sql;
         if (!sql) return error('SQL query is required', 400);
@@ -346,8 +346,8 @@ export default {
       // ----------------------------------------------------
       // 6. Generic Table Record CRUD (/api/d1/records/:table)
       // ----------------------------------------------------
-      if (path.startsWith('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)d1/records/')) {
-        const parts = path.replace('[https://robeats-d1-api.anh6052018.workers.dev/api/](https://robeats-d1-api.anh6052018.workers.dev/api/)d1/records/', '').split('/');
+      if (path.startsWith('/api/d1/records/')) {
+        const parts = path.replace('/api/d1/records/', '').split('/');
         const table = parts[0].toLowerCase();
         const id = parts[1];
         const allowedTables = ['posts', 'songs', 'users', 'webhooks', 'ranks', 'elements'];
