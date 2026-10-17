@@ -58,7 +58,7 @@ export default function App() {
   const fetchPosts = async () => {
     try {
       setIsLoadingPosts(true);
-      const res = await fetch('/api/news');
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/news');
       if (res.ok) {
         const data = await res.json();
         setPosts(data);

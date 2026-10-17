@@ -45,7 +45,7 @@ export async function fetchSongList(forceRefresh: boolean = false): Promise<Song
  */
 export async function adminAddSong(song: Omit<SongEntry, 'id'>): Promise<SongEntry> {
   const token = getAuthToken();
-  const res = await fetch('/api/songs', {
+  const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/songs', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -126,7 +126,7 @@ export function adminResetOverrides() {
  */
 export async function fetchElementsList(): Promise<ElementConfig[]> {
   try {
-    const res = await fetch('/api/elements');
+    const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/elements');
     if (!res.ok) throw new Error('Failed to fetch elements');
     const data: ElementConfig[] = await res.json();
     cachedElements = data;
@@ -145,7 +145,7 @@ export async function fetchElementsList(): Promise<ElementConfig[]> {
  */
 export async function updateElementsList(elements: ElementConfig[]): Promise<ElementConfig[]> {
   const token = getAuthToken();
-  const res = await fetch('/api/elements', {
+  const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/elements', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ export async function updateElementsList(elements: ElementConfig[]): Promise<Ele
  */
 export async function fetchDiscordWebhooks(): Promise<Record<string, string>> {
   const token = getAuthToken();
-  const res = await fetch('/api/admin/webhooks', {
+  const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/webhooks', {
     headers: {
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
@@ -188,7 +188,7 @@ export async function fetchDiscordWebhooks(): Promise<Record<string, string>> {
  */
 export async function updateDiscordWebhooks(config: Record<string, any>): Promise<Record<string, any>> {
   const token = getAuthToken();
-  const res = await fetch('/api/admin/webhooks', {
+  const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/webhooks', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -211,7 +211,7 @@ export async function updateDiscordWebhooks(config: Record<string, any>): Promis
  */
 export async function testDiscordWebhook(category: string, webhookUrl?: string): Promise<{ success: boolean; message: string }> {
   const token = getAuthToken();
-  const res = await fetch('/api/admin/webhooks/test', {
+  const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/webhooks/test', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -238,7 +238,7 @@ export async function fetchDailyMissionTemplate(): Promise<{
   defaultFooterTemplate: string;
   sampleFormatted: string;
 }> {
-  const res = await fetch('/api/admin/webhooks/daily-mission-template');
+  const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/webhooks/daily-mission-template');
   if (!res.ok) {
     throw new Error('Failed to load Daily Mission template');
   }
@@ -396,7 +396,7 @@ export async function fetchRanksList(forceRefresh: boolean = false): Promise<Ran
   }
 
   try {
-    const res = await fetch('/api/ranks');
+    const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/ranks');
     if (!res.ok) throw new Error('Failed to fetch ranks');
     const ranks = await res.json();
     cachedRanks = ranks;
@@ -442,7 +442,7 @@ export async function updateRankConfig(id: string, updates: Partial<RankConfig>)
  */
 export async function updateAllRanks(ranks: RankConfig[]): Promise<RankConfig[]> {
   const token = getAuthToken();
-  const res = await fetch('/api/admin/ranks', {
+  const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/ranks', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

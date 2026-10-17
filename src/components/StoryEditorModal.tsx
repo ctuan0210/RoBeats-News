@@ -111,7 +111,7 @@ export const StoryEditorModal: React.FC<StoryEditorModalProps> = ({
     setImageGenError(null);
 
     try {
-      const response = await fetch('/api/generate-image', {
+      const response = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -157,7 +157,7 @@ export const StoryEditorModal: React.FC<StoryEditorModalProps> = ({
     setIsGeneratingHeadlines(true);
 
     try {
-      const res = await fetch('/api/assist/headlines', {
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/assist/headlines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content }),

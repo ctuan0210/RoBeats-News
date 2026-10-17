@@ -22,12 +22,6 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
       // Bổ sung Proxy để tự động chuyển hướng mọi API call lên Cloudflare Worker
-      proxy: {
-        '/api': {
-          target: 'https://robeats-d1-api.anh6052018.workers.dev',
-          changeOrigin: true,
-          secure: true,
-        },
       },
     },
     build: {

@@ -96,7 +96,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
   const loadD1Config = async () => {
     setIsLoadingConfig(true);
     try {
-      const res = await fetch('/api/admin/d1/config');
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/config');
       if (res.ok) {
         const data = await res.json();
         if (data.config) {
@@ -154,7 +154,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsSavingConfig(true);
     setTestResult(null);
     try {
-      const res = await fetch('/api/admin/d1/config', {
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/config', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -186,7 +186,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch('/api/admin/d1/test', {
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -216,7 +216,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsInitializing(true);
     setInitResult(null);
     try {
-      const res = await fetch('/api/admin/d1/init', { method: 'POST' });
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/init', { method: 'POST' });
       const data = await res.json();
       setInitResult({
         success: Boolean(data.success),
@@ -237,7 +237,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setIsSyncingAll(true);
     setSyncResult(null);
     try {
-      const res = await fetch('/api/admin/d1/sync-all', { method: 'POST' });
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/sync-all', { method: 'POST' });
       const data = await res.json();
       if (res.ok && data.success) {
         setSyncResult({
@@ -264,7 +264,7 @@ export const CloudflareD1Tab: React.FC<CloudflareD1TabProps> = ({ onDataChanged 
     setSqlError(null);
     setSqlResult(null);
     try {
-      const res = await fetch('/api/admin/d1/query', {
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/admin/d1/query', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sql: sqlQuery.trim() }),

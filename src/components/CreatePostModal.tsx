@@ -475,7 +475,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         coverImage: finalCover || undefined,
       };
 
-      const res = await fetch('/api/news', {
+      const res = await fetch('[https://robeats-d1-api.anh6052018.workers.dev/api](https://robeats-d1-api.anh6052018.workers.dev/api)/news', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
