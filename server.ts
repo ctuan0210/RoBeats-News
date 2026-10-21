@@ -5,35 +5,6 @@ import { fileURLToPath } from 'url';
 import fs from 'fs';
 import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
-import {
-  readD1Config,
-  writeD1Config,
-  isD1Ready,
-  executeD1Query,
-  initD1Tables,
-  testD1Connection,
-  syncPostToD1,
-  deletePostFromD1,
-  syncSongToD1,
-  deleteSongFromD1,
-  syncUserToD1,
-  deleteUserFromD1,
-  fetchPostsFromD1,
-  fetchSongsFromD1,
-  fetchUsersFromD1,
-  fetchRanksFromD1,
-  fetchElementsFromD1,
-  fetchWebhooksFromD1,
-  syncRankToD1,
-  syncElementToD1,
-  syncWebhookToD1,
-  fetchD1Records,
-  insertD1Record,
-  updateD1Record,
-  deleteD1Record,
-  syncLocalDataToD1,
-  D1Config,
-} from './server/d1.js';
 
 dotenv.config();
 
@@ -41,7 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 
 app.use(express.json({ limit: '25mb' }));
 
@@ -62,6 +33,28 @@ const NEWS_FILE = path.join(DATA_DIR, 'news.json');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const WEBHOOKS_FILE = path.join(DATA_DIR, 'webhooks.json');
 const RANKS_FILE = path.join(DATA_DIR, 'ranks.json');
+const SONGS_FILE = path.join(DATA_DIR, 'songs.json');
+const ELEMENTS_FILE = path.join(DATA_DIR, 'elements.json');
+const COMMENTS_FILE = path.join(DATA_DIR, 'comments.json');
+const FRAMES_FILE = path.join(DATA_DIR, 'frames.json');
+
+export function safeWriteJson(filePath: string, data: any) {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    const tempPath = `${filePath}.tmp.${Date.now()}`;
+    fs.writeFileSync(tempPath, JSON.stringify(data, null, 2), 'utf-8');
+    fs.renameSync(tempPath, filePath);
+  } catch (err) {
+    console.error(`[Data Storage Error] Failed atomic write for ${filePath}:`, err);
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    } catch (fallbackErr) {
+      console.error(`[Data Storage Error] Fallback direct write failed for ${filePath}:`, fallbackErr);
+    }
+  }
+}
 
 export interface WebhookTemplateConfig {
   titleTemplate?: string;
@@ -86,30 +79,40 @@ export interface RankConfig {
   description?: string;
 }
 
+export const DEFAULT_RANKS: RankConfig[] = [
+  { id: 'star', name: 'Star', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/star.svg', color: '#F59E0B', description: 'Elite RoBeats master rhythm players' },
+  { id: 'pro', name: 'Pro', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/zap.svg', color: '#A855F7', description: 'High tier competitive rhythm champions' },
+  { id: 'amateur', name: 'Amateur', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/award.svg', color: '#3B82F6', description: 'Skilled rhythm players clearing advanced charts' },
+  { id: 'novice', name: 'Novice', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/activity.svg', color: '#10B981', description: 'Intermediate rhythm players learning higher speeds' },
+  { id: 'beginner', name: 'Beginner', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/disc.svg', color: '#64748B', description: 'Starting rhythm players beginning their journey' },
+];
+
 function readRanks(): RankConfig[] {
   try {
+    ensureDataFile();
     if (!fs.existsSync(RANKS_FILE)) {
-      const initial: RankConfig[] = [
-        { id: 'star', name: 'Star', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/star.svg', color: '#F59E0B', description: 'Elite RoBeats master rhythm players' },
-        { id: 'pro', name: 'Pro', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/zap.svg', color: '#A855F7', description: 'High tier competitive rhythm champions' },
-        { id: 'amateur', name: 'Amateur', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/award.svg', color: '#3B82F6', description: 'Skilled rhythm players clearing advanced charts' },
-        { id: 'novice', name: 'Novice', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/activity.svg', color: '#10B981', description: 'Intermediate rhythm players learning higher speeds' },
-        { id: 'beginner', name: 'Beginner', iconUrl: 'https://raw.githubusercontent.com/feathericons/feather/master/icons/disc.svg', color: '#64748B', description: 'Starting rhythm players beginning their journey' },
-      ];
-      fs.writeFileSync(RANKS_FILE, JSON.stringify(initial, null, 2), 'utf-8');
-      return initial;
+      safeWriteJson(RANKS_FILE, DEFAULT_RANKS);
+      return DEFAULT_RANKS;
     }
     const data = fs.readFileSync(RANKS_FILE, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+    return DEFAULT_RANKS;
   } catch (err) {
     console.error('Error reading ranks file:', err);
-    return [];
+    return DEFAULT_RANKS;
   }
 }
 
 function writeRanks(ranks: RankConfig[]) {
   try {
-    fs.writeFileSync(RANKS_FILE, JSON.stringify(ranks, null, 2), 'utf-8');
+    if (!Array.isArray(ranks) || ranks.length === 0) {
+      console.warn('Attempted to write empty ranks array, skipping overwrite');
+      return;
+    }
+    safeWriteJson(RANKS_FILE, ranks);
   } catch (err) {
     console.error('Error writing ranks file:', err);
   }
@@ -117,6 +120,7 @@ function writeRanks(ranks: RankConfig[]) {
 
 function readWebhooks(): DiscordWebhooksConfig {
   try {
+    ensureDataFile();
     if (!fs.existsSync(WEBHOOKS_FILE)) {
       const initial: DiscordWebhooksConfig = {
         'Daily mission': '',
@@ -124,11 +128,20 @@ function readWebhooks(): DiscordWebhooksConfig {
         'New song': '',
         'Updates': '',
       };
-      fs.writeFileSync(WEBHOOKS_FILE, JSON.stringify(initial, null, 2), 'utf-8');
+      safeWriteJson(WEBHOOKS_FILE, initial);
       return initial;
     }
     const data = fs.readFileSync(WEBHOOKS_FILE, 'utf-8');
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (parsed && typeof parsed === 'object') {
+      return parsed;
+    }
+    return {
+      'Daily mission': '',
+      'Weekly mission': '',
+      'New song': '',
+      'Updates': '',
+    };
   } catch (err) {
     console.error('Error reading webhooks file:', err);
     return {
@@ -142,7 +155,8 @@ function readWebhooks(): DiscordWebhooksConfig {
 
 function writeWebhooks(config: DiscordWebhooksConfig) {
   try {
-    fs.writeFileSync(WEBHOOKS_FILE, JSON.stringify(config, null, 2), 'utf-8');
+    if (!config || typeof config !== 'object') return;
+    safeWriteJson(WEBHOOKS_FILE, config);
   } catch (err) {
     console.error('Error writing webhooks file:', err);
   }
@@ -494,6 +508,11 @@ export interface UserPermissions {
   canPublishNews: boolean;
   canDeleteContent: boolean;
   canAccessAdminPanel: boolean;
+  canEditAllNews?: boolean;
+  canManageSongs?: boolean;
+  canManageWebhooks?: boolean;
+  canManageRanks?: boolean;
+  [key: string]: any;
 }
 
 export type UserRole = 'player' | 'robeatsdev' | 'staff' | 'admin';
@@ -523,6 +542,10 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
       canPublishNews: true,
       canDeleteContent: true,
       canAccessAdminPanel: true,
+      canEditAllNews: true,
+      canManageSongs: true,
+      canManageWebhooks: true,
+      canManageRanks: true,
     };
   }
   if (role === 'staff') {
@@ -531,9 +554,13 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
       canChangePasswords: false,
       canEditProfiles: false,
       canManageRoles: false,
-      canPublishNews: true, // Staff can post everywhere
+      canPublishNews: true, // Staff: can post posts
       canDeleteContent: false,
-      canAccessAdminPanel: false, // Staff cannot have admin permissions
+      canAccessAdminPanel: false, // Staff cannot access admin panel
+      canEditAllNews: false,
+      canManageSongs: false,
+      canManageWebhooks: false,
+      canManageRanks: false,
     };
   }
   // 'robeatsdev' and 'player':
@@ -545,6 +572,10 @@ export function getDefaultPermissions(role: UserRole): UserPermissions {
     canPublishNews: false,
     canDeleteContent: false,
     canAccessAdminPanel: false,
+    canEditAllNews: false,
+    canManageSongs: false,
+    canManageWebhooks: false,
+    canManageRanks: false,
   };
 }
 
@@ -641,8 +672,8 @@ function readUsers(): UserRecord[] {
 }
 
 function writeUsers(users: UserRecord[]) {
-  ensureDataFile();
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+  if (!Array.isArray(users) || users.length === 0) return;
+  safeWriteJson(USERS_FILE, users);
 }
 
 export interface NewsArticle {
@@ -739,9 +770,6 @@ const DEFAULT_ARTICLES: NewsArticle[] = [
   }
 ];
 
-const SONGS_FILE = path.join(DATA_DIR, 'songs.json');
-const ELEMENTS_FILE = path.join(DATA_DIR, 'elements.json');
-
 const DEFAULT_ELEMENTS: any[] = [
   { name: 'Rush', color: 'Red', hexColor: '#EF4444', imageUrl: '' },
   { name: 'Flow', color: 'Purple', hexColor: '#A855F7', imageUrl: '' },
@@ -770,25 +798,154 @@ const DEFAULT_ELEMENTS: any[] = [
   { name: 'Beat/Flow', color: 'Orange / Purple', hexColor: '#F97316', secondaryHexColor: '#A855F7', imageUrl: '' },
 ];
 
+const DEFAULT_SONGS: any[] = [
+  {
+    id: 'wiki_0',
+    title: 'Monday Night Monsters',
+    artist: 'FinnMK',
+    mapper: 'Official RoBeats',
+    coverArt: 'https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704',
+    coverArtEasy: 'https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704',
+    coverArtNormal: 'https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704',
+    coverArtHard: 'https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704',
+    difficulty: { easy: '1', normal: '1', hard: '14' },
+    element: 'Flow',
+    bpm: '100',
+    duration: '2:14'
+  },
+  {
+    id: 'wiki_1',
+    title: 'Daily Life',
+    artist: 'FinnMK',
+    mapper: 'Official RoBeats',
+    coverArt: 'https://static.wikia.nocookie.net/robeats/images/0/04/Daily_life.png/revision/latest/scale-to-width-down/100?cb=20210628193437',
+    coverArtEasy: 'https://static.wikia.nocookie.net/robeats/images/0/04/Daily_life.png/revision/latest/scale-to-width-down/100?cb=20210628193437',
+    coverArtNormal: 'https://static.wikia.nocookie.net/robeats/images/0/04/Daily_life.png/revision/latest/scale-to-width-down/100?cb=20210628193437',
+    coverArtHard: 'https://static.wikia.nocookie.net/robeats/images/0/04/Daily_life.png/revision/latest/scale-to-width-down/100?cb=20210628193437',
+    difficulty: { easy: '-', normal: '2', hard: '17' },
+    element: 'Chill',
+    bpm: '106',
+    duration: '2:02'
+  },
+  {
+    id: 'wiki_2',
+    title: '[@_@]',
+    artist: 'Chroma',
+    mapper: 'Official RoBeats',
+    coverArt: 'https://static.wikia.nocookie.net/robeats/images/2/2d/%40_%401.webp/revision/latest/scale-to-width-down/100?cb=20210317021614',
+    coverArtEasy: 'https://static.wikia.nocookie.net/robeats/images/2/2d/%40_%401.webp/revision/latest/scale-to-width-down/100?cb=20210317021614',
+    coverArtNormal: 'https://static.wikia.nocookie.net/robeats/images/2/2d/%40_%401.webp/revision/latest/scale-to-width-down/100?cb=20210317021614',
+    coverArtHard: 'https://static.wikia.nocookie.net/robeats/images/2/2d/%40_%401.webp/revision/latest/scale-to-width-down/100?cb=20210317021614',
+    difficulty: { easy: '1', normal: '3', hard: '25' },
+    element: 'Chill',
+    bpm: '128',
+    duration: '2:20'
+  },
+  {
+    id: 'wiki_3',
+    title: 'Adopt Me',
+    artist: 'BSlick',
+    mapper: 'Official RoBeats',
+    coverArt: 'https://static.wikia.nocookie.net/robeats/images/e/ea/Adopt_me_.png/revision/latest/scale-to-width-down/100?cb=20210724211804',
+    coverArtEasy: 'https://static.wikia.nocookie.net/robeats/images/e/ea/Adopt_me_.png/revision/latest/scale-to-width-down/100?cb=20210724211804',
+    coverArtNormal: 'https://static.wikia.nocookie.net/robeats/images/e/ea/Adopt_me_.png/revision/latest/scale-to-width-down/100?cb=20210724211804',
+    coverArtHard: 'https://static.wikia.nocookie.net/robeats/images/e/ea/Adopt_me_.png/revision/latest/scale-to-width-down/100?cb=20210724211804',
+    difficulty: { easy: '-', normal: '3', hard: '16' },
+    element: 'VibeRush',
+    bpm: '135',
+    duration: '1:50'
+  },
+  {
+    id: 'wiki_4',
+    title: 'Better Run',
+    artist: 'Rutra',
+    mapper: 'Official RoBeats',
+    coverArt: 'https://static.wikia.nocookie.net/robeats/images/0/01/Betterrunnormal.png/revision/latest/scale-to-width-down/100?cb=20210329021801',
+    coverArtEasy: 'https://static.wikia.nocookie.net/robeats/images/0/01/Betterrunnormal.png/revision/latest/scale-to-width-down/100?cb=20210329021801',
+    coverArtNormal: 'https://static.wikia.nocookie.net/robeats/images/0/01/Betterrunnormal.png/revision/latest/scale-to-width-down/100?cb=20210329021801',
+    coverArtHard: 'https://static.wikia.nocookie.net/robeats/images/0/01/Betterrunnormal.png/revision/latest/scale-to-width-down/100?cb=20210329021801',
+    difficulty: { easy: '-', normal: '3', hard: '21' },
+    element: 'ChillRush',
+    bpm: '150',
+    duration: '2:05'
+  }
+];
+
+export interface DifficultyFramesConfig {
+  easy: string;
+  normal: string;
+  hard: string;
+}
+
+const DEFAULT_FRAMES: DifficultyFramesConfig = {
+  easy: '/frames/easy-frame.svg',
+  normal: '',
+  hard: '/frames/hard-frame.svg',
+};
+
 function ensureDataFile() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(NEWS_FILE)) {
-    fs.writeFileSync(NEWS_FILE, JSON.stringify(DEFAULT_ARTICLES, null, 2), 'utf-8');
+    safeWriteJson(NEWS_FILE, DEFAULT_ARTICLES);
   }
   if (!fs.existsSync(ELEMENTS_FILE)) {
-    fs.writeFileSync(ELEMENTS_FILE, JSON.stringify(DEFAULT_ELEMENTS, null, 2), 'utf-8');
+    safeWriteJson(ELEMENTS_FILE, DEFAULT_ELEMENTS);
   }
   if (!fs.existsSync(SONGS_FILE)) {
-    fs.writeFileSync(SONGS_FILE, JSON.stringify([], null, 2), 'utf-8');
+    safeWriteJson(SONGS_FILE, DEFAULT_SONGS);
+  } else {
+    try {
+      const existing = JSON.parse(fs.readFileSync(SONGS_FILE, 'utf-8'));
+      if (!Array.isArray(existing) || existing.length === 0) {
+        safeWriteJson(SONGS_FILE, DEFAULT_SONGS);
+      }
+    } catch {
+      safeWriteJson(SONGS_FILE, DEFAULT_SONGS);
+    }
   }
   if (!fs.existsSync(COMMENTS_FILE)) {
-    fs.writeFileSync(COMMENTS_FILE, JSON.stringify([], null, 2), 'utf-8');
+    safeWriteJson(COMMENTS_FILE, []);
+  }
+  if (!fs.existsSync(RANKS_FILE)) {
+    safeWriteJson(RANKS_FILE, DEFAULT_RANKS);
+  }
+  if (!fs.existsSync(WEBHOOKS_FILE)) {
+    const initialWebhooks: DiscordWebhooksConfig = {
+      'Daily mission': '',
+      'Weekly mission': '',
+      'New song': '',
+      'Updates': '',
+    };
+    safeWriteJson(WEBHOOKS_FILE, initialWebhooks);
+  }
+  if (!fs.existsSync(USERS_FILE)) {
+    safeWriteJson(USERS_FILE, DEFAULT_USERS);
+  }
+  if (!fs.existsSync(FRAMES_FILE)) {
+    safeWriteJson(FRAMES_FILE, DEFAULT_FRAMES);
   }
 }
 
-const COMMENTS_FILE = path.join(DATA_DIR, 'comments.json');
+function readFrames(): DifficultyFramesConfig {
+  ensureDataFile();
+  try {
+    const data = fs.readFileSync(FRAMES_FILE, 'utf-8');
+    const parsed = JSON.parse(data);
+    return {
+      easy: typeof parsed?.easy === 'string' ? parsed.easy : DEFAULT_FRAMES.easy,
+      normal: typeof parsed?.normal === 'string' ? parsed.normal : '',
+      hard: typeof parsed?.hard === 'string' ? parsed.hard : DEFAULT_FRAMES.hard,
+    };
+  } catch (err) {
+    return DEFAULT_FRAMES;
+  }
+}
+
+function writeFrames(frames: DifficultyFramesConfig) {
+  safeWriteJson(FRAMES_FILE, frames);
+}
 
 function readComments(): any[] {
   ensureDataFile();
@@ -805,8 +962,8 @@ function readComments(): any[] {
 }
 
 function writeComments(comments: any[]) {
-  ensureDataFile();
-  fs.writeFileSync(COMMENTS_FILE, JSON.stringify(comments, null, 2), 'utf-8');
+  if (!Array.isArray(comments)) return;
+  safeWriteJson(COMMENTS_FILE, comments);
 }
 
 function readElements(): any[] {
@@ -824,8 +981,8 @@ function readElements(): any[] {
 }
 
 function writeElements(elements: any[]) {
-  ensureDataFile();
-  fs.writeFileSync(ELEMENTS_FILE, JSON.stringify(elements, null, 2), 'utf-8');
+  if (!Array.isArray(elements) || elements.length === 0) return;
+  safeWriteJson(ELEMENTS_FILE, elements);
 }
 
 function readSongs(): any[] {
@@ -843,8 +1000,8 @@ function readSongs(): any[] {
 }
 
 function writeSongs(songs: any[]) {
-  ensureDataFile();
-  fs.writeFileSync(SONGS_FILE, JSON.stringify(songs, null, 2), 'utf-8');
+  if (!Array.isArray(songs)) return;
+  safeWriteJson(SONGS_FILE, songs);
 }
 
 function readArticles(): NewsArticle[] {
@@ -863,8 +1020,8 @@ function readArticles(): NewsArticle[] {
 }
 
 function writeArticles(articles: NewsArticle[]) {
-  ensureDataFile();
-  fs.writeFileSync(NEWS_FILE, JSON.stringify(articles, null, 2), 'utf-8');
+  if (!Array.isArray(articles)) return;
+  safeWriteJson(NEWS_FILE, articles);
 }
 
 // ----------------------------------------------------
@@ -906,7 +1063,6 @@ app.post('/api/auth/signup', (req, res) => {
         users[meeloIdx].role = 'admin';
         users[meeloIdx].permissions = getDefaultPermissions('admin');
         writeUsers(users);
-        syncUserToD1(users[meeloIdx]);
         const token = `tok_${users[meeloIdx].id}_${Date.now()}`;
         return res.status(201).json({ user: sanitizeUser(users[meeloIdx]), token });
       }
@@ -938,7 +1094,6 @@ app.post('/api/auth/signup', (req, res) => {
 
     users.push(newUser);
     writeUsers(users);
-    syncUserToD1(newUser);
 
     const token = `tok_${newUser.id}_${Date.now()}`;
     res.status(201).json({ user: sanitizeUser(newUser), token });
@@ -1041,7 +1196,6 @@ app.put('/api/auth/profile', (req, res) => {
   if (preferredNoteSpeed !== undefined) users[index].preferredNoteSpeed = preferredNoteSpeed;
 
   writeUsers(users);
-  syncUserToD1(users[index]);
   res.json({ user: sanitizeUser(users[index]) });
 });
 
@@ -1069,20 +1223,13 @@ app.put('/api/auth/password', (req, res) => {
   const index = users.findIndex(u => u.id === user.id);
   users[index].passwordHash = hashPassword(newPassword);
   writeUsers(users);
-  syncUserToD1(users[index]);
 
   res.json({ success: true, message: 'Password updated successfully' });
 });
 
 // 6. List all registered accounts (Account management & switcher)
-app.get('/api/auth/users', async (req, res) => {
-  let users: any[] | null = null;
-  if (isD1Ready()) {
-    users = await fetchUsersFromD1();
-  }
-  if (!users) {
-    users = readUsers();
-  }
+app.get('/api/auth/users', (req, res) => {
+  const users = readUsers();
   res.json(users.map(sanitizeUser));
 });
 
@@ -1101,7 +1248,6 @@ app.delete('/api/auth/account/:id', (req, res) => {
   let users = readUsers();
   users = users.filter(u => u.id !== targetId);
   writeUsers(users);
-  deleteUserFromD1(targetId);
 
   res.json({ success: true, message: 'Account deleted' });
 });
@@ -1124,14 +1270,8 @@ function requireAdmin(req: any, res: any, next: any) {
 }
 
 // 1. Get all users with full info for admin management
-app.get('/api/admin/users', requireAdmin, async (req, res) => {
-  let users: any[] | null = null;
-  if (isD1Ready()) {
-    users = await fetchUsersFromD1();
-  }
-  if (!users) {
-    users = readUsers();
-  }
+app.get('/api/admin/users', requireAdmin, (req, res) => {
+  const users = readUsers();
   res.json(users.map(sanitizeUser));
 });
 
@@ -1187,7 +1327,6 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
 
     users.push(newUser);
     writeUsers(users);
-    syncUserToD1(newUser);
     res.status(201).json({ user: sanitizeUser(newUser) });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to create user' });
@@ -1198,7 +1337,7 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
 app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
   try {
     const targetId = req.params.id;
-    const { displayName, username, email, avatar, bio, role, permissions } = req.body;
+    const { displayName, username, email, avatar, bio, role, permissions, newPassword } = req.body;
     const users = readUsers();
     const index = users.findIndex(u => u.id === targetId);
     if (index === -1) {
@@ -1228,20 +1367,21 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     const validRoles: UserRole[] = ['admin', 'staff', 'robeatsdev', 'player'];
     if (role && validRoles.includes(role)) {
       users[index].role = role;
-      if (!permissions) {
-        users[index].permissions = getDefaultPermissions(role);
-      }
+      users[index].permissions = getDefaultPermissions(role);
     }
 
     if (permissions && typeof permissions === 'object') {
       users[index].permissions = {
-        ...users[index].permissions,
+        ...(users[index].permissions || getDefaultPermissions(users[index].role)),
         ...permissions,
       };
     }
 
+    if (newPassword && typeof newPassword === 'string' && newPassword.trim().length >= 6) {
+      users[index].passwordHash = hashPassword(newPassword.trim());
+    }
+
     writeUsers(users);
-    syncUserToD1(users[index]);
     res.json({ user: sanitizeUser(users[index]), message: 'User updated successfully' });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update user' });
@@ -1265,7 +1405,6 @@ app.put('/api/admin/users/:id/password', requireAdmin, (req, res) => {
 
     users[index].passwordHash = hashPassword(newPassword);
     writeUsers(users);
-    syncUserToD1(users[index]);
 
     res.json({ success: true, message: `Password for @${users[index].username} successfully reset` });
   } catch (err: any) {
@@ -1295,7 +1434,6 @@ app.delete('/api/admin/users/:id', requireAdmin, (req: any, res) => {
 
     users = users.filter(u => u.id !== targetId);
     writeUsers(users);
-    deleteUserFromD1(targetId);
 
     res.json({ success: true, message: `Account @${targetUser.username} deleted` });
   } catch (err: any) {
@@ -1304,15 +1442,9 @@ app.delete('/api/admin/users/:id', requireAdmin, (req: any, res) => {
 });
 
 // 7. Get Discord Webhooks configuration (Admin only)
-app.get('/api/admin/webhooks', requireAdmin, async (req, res) => {
+app.get('/api/admin/webhooks', requireAdmin, (req, res) => {
   try {
-    let webhooks = null;
-    if (isD1Ready()) {
-      webhooks = await fetchWebhooksFromD1();
-    }
-    if (!webhooks || Object.keys(webhooks).length === 0) {
-      webhooks = readWebhooks();
-    }
+    const webhooks = readWebhooks();
     res.json(webhooks);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to read webhooks' });
@@ -1349,15 +1481,6 @@ app.post('/api/admin/webhooks', requireAdmin, (req, res) => {
     }
 
     writeWebhooks(updated);
-    for (const cat of ['Daily mission', 'Weekly mission', 'Weekly Leaderboard', 'New song', 'Updates']) {
-      const item = updated[cat];
-      if (typeof item === 'string') {
-        syncWebhookToD1(cat, item, {});
-      } else if (item && typeof item === 'object') {
-        syncWebhookToD1(cat, item.url, item.template);
-      }
-    }
-
     res.json({ success: true, webhooks: updated });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update webhooks' });
@@ -1492,13 +1615,7 @@ app.get('/api/news/:id/discord-template', (req, res) => {
 // 10. Get RoBeats Ranks list
 app.get('/api/ranks', async (req, res) => {
   try {
-    let ranks = null;
-    if (isD1Ready()) {
-      ranks = await fetchRanksFromD1();
-    }
-    if (!ranks || ranks.length === 0) {
-      ranks = readRanks();
-    }
+    const ranks = readRanks();
     res.json(ranks);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to fetch ranks' });
@@ -1520,7 +1637,6 @@ app.put('/api/admin/ranks/:id', requireAdmin, (req, res) => {
     if (description !== undefined) ranks[idx].description = description.trim();
     if (name !== undefined) ranks[idx].name = name;
     writeRanks(ranks);
-    syncRankToD1(ranks[idx]);
     res.json({ success: true, rank: ranks[idx], ranks });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update rank' });
@@ -1530,182 +1646,42 @@ app.put('/api/admin/ranks/:id', requireAdmin, (req, res) => {
 // 12. Batch update RoBeats Ranks (Admin only)
 app.put('/api/admin/ranks', requireAdmin, (req, res) => {
   try {
-    const { ranks } = req.body;
-    if (!Array.isArray(ranks)) {
-      return res.status(400).json({ error: 'Ranks must be an array' });
+    const raw = req.body;
+    const ranks = Array.isArray(raw) ? raw : raw?.ranks;
+    if (!Array.isArray(ranks) || ranks.length === 0) {
+      return res.status(400).json({ error: 'Ranks must be a non-empty array' });
     }
     writeRanks(ranks);
-    for (const r of ranks) {
-      syncRankToD1(r);
-    }
     res.json({ success: true, ranks });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update ranks' });
   }
 });
 
-// ----------------------------------------------------
-// CLOUDFLARE D1 DATABASE ADMIN API ROUTES
-// ----------------------------------------------------
-
-// 1. Get D1 Configuration & Connection Status
-app.get('/api/admin/d1/config', requireAdmin, (req, res) => {
+// 13. Get Difficulty Cover Art Frames
+app.get('/api/frames', (req, res) => {
   try {
-    const config = readD1Config();
-    res.json({
-      success: true,
-      config: {
-        accountId: config.accountId || '',
-        databaseId: config.databaseId || '',
-        workerUrl: config.workerUrl || '',
-        hasApiToken: Boolean(config.apiToken),
-        enabled: Boolean(config.enabled),
-        isReady: isD1Ready(config),
-      },
-    });
+    const frames = readFrames();
+    res.json(frames);
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to read D1 config' });
+    res.status(500).json({ error: err.message || 'Failed to read difficulty frames' });
   }
 });
 
-// 2. Save D1 Configuration
-app.post('/api/admin/d1/config', requireAdmin, (req, res) => {
+// 14. Update Difficulty Cover Art Frames (Admin only)
+app.put('/api/admin/frames', requireAdmin, (req, res) => {
   try {
-    const { accountId, databaseId, apiToken, workerUrl, enabled } = req.body;
-    const current = readD1Config();
-    const updated = writeD1Config({
-      accountId: accountId !== undefined ? accountId.trim() : current.accountId,
-      databaseId: databaseId !== undefined ? databaseId.trim() : current.databaseId,
-      apiToken: apiToken ? apiToken.trim() : current.apiToken,
-      workerUrl: workerUrl !== undefined ? workerUrl.trim() : current.workerUrl,
-      enabled: enabled !== undefined ? Boolean(enabled) : current.enabled,
-    });
-    res.json({
-      success: true,
-      message: 'Cloudflare D1 configuration updated successfully',
-      config: {
-        accountId: updated.accountId,
-        databaseId: updated.databaseId,
-        workerUrl: updated.workerUrl || '',
-        hasApiToken: Boolean(updated.apiToken),
-        enabled: updated.enabled,
-        isReady: isD1Ready(updated),
-      },
-    });
+    const body = req.body;
+    const current = readFrames();
+    const updated: DifficultyFramesConfig = {
+      easy: body.easy !== undefined ? String(body.easy).trim() : current.easy,
+      normal: body.normal !== undefined ? String(body.normal).trim() : current.normal,
+      hard: body.hard !== undefined ? String(body.hard).trim() : current.hard,
+    };
+    writeFrames(updated);
+    res.json({ success: true, frames: updated });
   } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to update D1 config' });
-  }
-});
-
-// 3. Test Connection to Cloudflare D1
-app.post('/api/admin/d1/test', requireAdmin, async (req, res) => {
-  try {
-    const { accountId, databaseId, apiToken, workerUrl } = req.body;
-    let customCfg: D1Config | undefined = undefined;
-    if (accountId || databaseId || apiToken || workerUrl) {
-      const current = readD1Config();
-      customCfg = {
-        accountId: (accountId !== undefined ? accountId : current.accountId || '').trim(),
-        databaseId: (databaseId !== undefined ? databaseId : current.databaseId || '').trim(),
-        apiToken: (apiToken !== undefined ? apiToken : current.apiToken || '').trim(),
-        workerUrl: (workerUrl !== undefined ? workerUrl : current.workerUrl || '').trim(),
-        enabled: true,
-      };
-    }
-    const result = await testD1Connection(customCfg);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ success: false, message: err.message || 'Connection test failed' });
-  }
-});
-
-// 4. Initialize / Verify all D1 Tables
-app.post('/api/admin/d1/init', requireAdmin, async (req, res) => {
-  try {
-    const result = await initD1Tables();
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to initialize D1 tables' });
-  }
-});
-
-// 5. One-click migration of all local data into Cloudflare D1
-app.post('/api/admin/d1/sync-all', requireAdmin, async (req, res) => {
-  try {
-    const articles = readArticles();
-    const songs = readSongs();
-    const users = readUsers();
-    const webhooks = readWebhooks();
-    const ranks = readRanks();
-    const elements = readElements();
-
-    const result = await syncLocalDataToD1(articles, songs, users, webhooks, ranks, elements);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to sync data to D1' });
-  }
-});
-
-// 6. Direct SQL Execution Console
-app.post('/api/admin/d1/query', requireAdmin, async (req, res) => {
-  try {
-    const { sql, params } = req.body;
-    if (!sql || typeof sql !== 'string') {
-      return res.status(400).json({ error: 'SQL statement is required' });
-    }
-    const result = await executeD1Query(sql.trim(), params || []);
-    res.json(result);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to execute query' });
-  }
-});
-
-// 7. Manual Records Management (Fetch records from any table)
-app.get('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
-  try {
-    const limit = Math.min(Number(req.query.limit) || 100, 200);
-    const records = await fetchD1Records(req.params.table, limit);
-    res.json({ success: true, table: req.params.table, count: records.length, records });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to fetch D1 records' });
-  }
-});
-
-// 8. Manual Insert record directly into D1
-app.post('/api/admin/d1/records/:table', requireAdmin, async (req, res) => {
-  try {
-    const record = req.body;
-    if (!record || typeof record !== 'object') {
-      return res.status(400).json({ error: 'Record data must be an object' });
-    }
-    const result = await insertD1Record(req.params.table, record);
-    res.status(201).json({ success: true, message: `Record inserted into ${req.params.table}`, result });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to insert D1 record' });
-  }
-});
-
-// 9. Manual Update record directly in D1
-app.put('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
-  try {
-    const record = req.body;
-    if (!record || typeof record !== 'object') {
-      return res.status(400).json({ error: 'Record data must be an object' });
-    }
-    const result = await updateD1Record(req.params.table, req.params.id, record);
-    res.json({ success: true, message: `Record updated in ${req.params.table}`, result });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to update D1 record' });
-  }
-});
-
-// 10. Manual Delete record directly from D1
-app.delete('/api/admin/d1/records/:table/:id', requireAdmin, async (req, res) => {
-  try {
-    const result = await deleteD1Record(req.params.table, req.params.id);
-    res.json({ success: true, message: `Record deleted from ${req.params.table}`, result });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message || 'Failed to delete D1 record' });
+    res.status(500).json({ error: err.message || 'Failed to update difficulty frames' });
   }
 });
 
@@ -1737,13 +1713,7 @@ app.get('/api/songs/fandom', async (req, res) => {
 // 1. Get all articles with optional filters
 app.get('/api/news', async (req, res) => {
   try {
-    let articles: NewsArticle[] | null = null;
-    if (isD1Ready()) {
-      articles = await fetchPostsFromD1();
-    }
-    if (!articles) {
-      articles = readArticles();
-    }
+    const articles = readArticles();
     const { category, query, status, isBreaking, isFeatured } = req.query;
 
     let filtered = [...articles];
@@ -1852,14 +1822,6 @@ app.post('/api/news/:id/comments', (req, res) => {
     comments.push(newComment);
     writeComments(comments);
 
-    // Sync updated comments into post in D1
-    const articles = readArticles();
-    const art = articles.find(a => a.id === req.params.id);
-    if (art) {
-      art.comments = comments.filter(c => c.postId === art.id);
-      syncPostToD1(art);
-    }
-
     res.status(201).json(newComment);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to post comment' });
@@ -1888,14 +1850,6 @@ app.delete('/api/news/:id/comments/:commentId', (req, res) => {
 
     comments = comments.filter(c => c.id !== req.params.commentId);
     writeComments(comments);
-
-    // Sync updated comments into post in D1
-    const articles = readArticles();
-    const art = articles.find(a => a.id === req.params.id);
-    if (art) {
-      art.comments = comments.filter(c => c.postId === art.id);
-      syncPostToD1(art);
-    }
 
     res.json({ success: true, id: req.params.commentId });
   } catch (err: any) {
@@ -1972,7 +1926,6 @@ app.post('/api/news', requireStaffOrAdmin, (req, res) => {
 
     articles.unshift(newArticle);
     writeArticles(articles);
-    syncPostToD1(newArticle);
 
     res.status(201).json(newArticle);
   } catch (err: any) {
@@ -2019,7 +1972,6 @@ app.put('/api/news/:id', requireStaffOrAdmin, (req, res) => {
 
     articles[index] = updated;
     writeArticles(articles);
-    syncPostToD1(updated);
 
     res.json(updated);
   } catch (err: any) {
@@ -2050,7 +2002,6 @@ app.post('/api/news/:id/publish-webhook', requireStaffOrAdmin, async (req: any, 
       };
       articles[index] = post;
       writeArticles(articles);
-      syncPostToD1(post);
     }
 
     const webhooks = readWebhooks();
@@ -2086,7 +2037,6 @@ app.delete('/api/news/:id', requireStaffOrAdmin, (req, res) => {
 
     articles = articles.filter(a => a.id !== req.params.id);
     writeArticles(articles);
-    deletePostFromD1(req.params.id);
 
     res.json({ success: true, id: req.params.id });
   } catch (err: any) {
@@ -2109,15 +2059,9 @@ app.post('/api/news/reset-seed', (req, res) => {
 // ----------------------------------------------------
 
 // 1. Get all elements (including admin configured image URLs)
-app.get('/api/elements', async (req, res) => {
+app.get('/api/elements', (req, res) => {
   try {
-    let elements = null;
-    if (isD1Ready()) {
-      elements = await fetchElementsFromD1();
-    }
-    if (!elements || elements.length === 0) {
-      elements = readElements();
-    }
+    const elements = readElements();
     res.json(elements);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to read elements' });
@@ -2127,30 +2071,22 @@ app.get('/api/elements', async (req, res) => {
 // 2. Update elements URL images (Admin only)
 app.put('/api/elements', requireAdmin, (req, res) => {
   try {
-    const body = req.body;
-    if (!Array.isArray(body)) {
+    const raw = req.body;
+    const elements = Array.isArray(raw) ? raw : raw?.elements;
+    if (!Array.isArray(elements) || elements.length === 0) {
       return res.status(400).json({ error: 'Expected array of element configs' });
     }
-    writeElements(body);
-    for (const el of body) {
-      syncElementToD1(el);
-    }
-    res.json({ success: true, elements: body });
+    writeElements(elements);
+    res.json({ success: true, elements });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to update elements' });
   }
 });
 
 // 3. Get all songs
-app.get('/api/songs', async (req, res) => {
+app.get('/api/songs', (req, res) => {
   try {
-    let songs: any[] | null = null;
-    if (isD1Ready()) {
-      songs = await fetchSongsFromD1();
-    }
-    if (!songs) {
-      songs = readSongs();
-    }
+    const songs = readSongs();
     res.json(songs);
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to read songs' });
@@ -2164,7 +2100,7 @@ app.post('/api/songs', requireAdmin, (req, res) => {
     const body = req.body;
     if (!body.title) return res.status(400).json({ error: 'Title is required' });
 
-    const primaryCover = body.coverArt || body.coverArtNormal || body.coverArtEasy || body.coverArtHard || '';
+    const primaryCover = (body.coverArt || body.coverArtNormal || '').trim();
 
     const newSong = {
       id: 'custom_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
@@ -2172,9 +2108,9 @@ app.post('/api/songs', requireAdmin, (req, res) => {
       artist: body.artist?.trim() || 'Unknown Artist',
       mapper: body.mapper ? body.mapper.trim() : undefined,
       coverArt: primaryCover,
-      coverArtEasy: body.coverArtEasy || primaryCover,
-      coverArtNormal: body.coverArtNormal || primaryCover,
-      coverArtHard: body.coverArtHard || primaryCover,
+      coverArtEasy: primaryCover,
+      coverArtNormal: primaryCover,
+      coverArtHard: primaryCover,
       difficulty: {
         easy: body.difficulty?.easy || '-',
         normal: body.difficulty?.normal || '-',
@@ -2189,7 +2125,6 @@ app.post('/api/songs', requireAdmin, (req, res) => {
 
     songs.unshift(newSong);
     writeSongs(songs);
-    syncSongToD1(newSong);
 
     res.status(201).json(newSong);
   } catch (err: any) {
@@ -2197,7 +2132,7 @@ app.post('/api/songs', requireAdmin, (req, res) => {
   }
 });
 
-// 5. Update song (Admin only, can change cover art per difficulty)
+// 5. Update song (Admin only, 1 cover art per song)
 app.put('/api/songs/:id', requireAdmin, (req, res) => {
   try {
     const songs = readSongs();
@@ -2207,11 +2142,8 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
     const body = req.body;
     const current = songs[idx];
 
-    // Determine independent cover art per difficulty
-    const primaryCover = body.coverArt !== undefined ? body.coverArt : (current.coverArt || '');
-    const easyCover = body.coverArtEasy !== undefined ? body.coverArtEasy : (current.coverArtEasy || primaryCover);
-    const normalCover = body.coverArtNormal !== undefined ? body.coverArtNormal : (current.coverArtNormal || primaryCover);
-    const hardCover = body.coverArtHard !== undefined ? body.coverArtHard : (current.coverArtHard || primaryCover);
+    // Single cover art per song
+    const primaryCover = body.coverArt !== undefined ? String(body.coverArt).trim() : (body.coverArtNormal !== undefined ? String(body.coverArtNormal).trim() : (current.coverArt || ''));
 
     const updated = {
       ...current,
@@ -2219,9 +2151,9 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
       artist: body.artist !== undefined ? body.artist.trim() : current.artist,
       mapper: body.mapper !== undefined ? (body.mapper ? body.mapper.trim() : undefined) : current.mapper,
       coverArt: primaryCover,
-      coverArtEasy: easyCover,
-      coverArtNormal: normalCover,
-      coverArtHard: hardCover,
+      coverArtEasy: primaryCover,
+      coverArtNormal: primaryCover,
+      coverArtHard: primaryCover,
       difficulty: {
         easy: body.difficulty?.easy !== undefined ? body.difficulty.easy : current.difficulty.easy,
         normal: body.difficulty?.normal !== undefined ? body.difficulty.normal : current.difficulty.normal,
@@ -2234,7 +2166,6 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
 
     songs[idx] = updated;
     writeSongs(songs);
-    syncSongToD1(updated);
 
     // Also update attached songs in existing articles so cover art per difficulty updates in posts
     let articles = readArticles();
@@ -2257,9 +2188,7 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
       });
       if (songUpdatedInPost) {
         articlesModified = true;
-        const postUpdated = { ...a, songs: updatedPostSongs };
-        syncPostToD1(postUpdated);
-        return postUpdated;
+        return { ...a, songs: updatedPostSongs };
       }
       return a;
     });
@@ -2282,7 +2211,6 @@ app.delete('/api/songs/:id', requireAdmin, (req, res) => {
 
     songs = songs.filter(s => s.id !== req.params.id);
     writeSongs(songs);
-    deleteSongFromD1(req.params.id);
 
     res.json({ success: true, id: req.params.id });
   } catch (err: any) {

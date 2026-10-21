@@ -1,245 +1,30 @@
 [
   {
-    "id": "post-newsong-alteregoism",
-    "title": "New Song: Alteregoism by Laur",
-    "subtitle": "High energy EDM rhythm chart now playable in RoBeats!",
-    "content": "We are excited to announce that Alteregoism by Laur is now officially added to RoBeats! Challenge yourself with rapid BPM 220 patterns and intricate note streams.",
-    "summary": "Alteregoism by Laur is now available to play across Easy, Normal, and Hard charts.",
-    "category": "New song",
-    "author": {
-      "name": "Meelo",
-      "role": "Admin",
-      "avatar": "https://down-vn.img.susercontent.com/file/sg-11134201-81zwv-mih44jns7q4n42"
-    },
-    "publishedAt": "2026-10-06T08:00:00.000Z",
-    "updatedAt": "2026-10-06T08:00:00.000Z",
-    "readTime": "1 min read",
-    "coverImage": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-    "coverImageCaption": "Alteregoism by Laur",
-    "isBreaking": false,
-    "isFeatured": true,
-    "isTrending": true,
-    "status": "published",
-    "tags": [
-      "New song",
-      "RoBeats",
-      "Release"
-    ],
-    "views": 25,
-    "songs": [
-      {
-        "id": "song_940_alteregoism",
-        "title": "Alteregoism",
-        "artist": "Laur",
-        "coverArt": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-        "coverArtEasy": "https://i.scdn.co/image/ab67616d00001e02ab5c4020fa71d2c77202d567",
-        "coverArtNormal": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-        "coverArtHard": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-        "difficulty": {
-          "easy": "8",
-          "normal": "25",
-          "hard": "32"
-        },
-        "element": "Chill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/1/18/ChillBeatIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531031720",
-        "duration": "2:31",
-        "bpm": "220",
-        "chosenDifficulty": "N"
-      }
-    ]
-  },
-  {
-    "id": "post-update-v25",
-    "title": "RoBeats Update - Version 2.5 Patch Notes",
-    "subtitle": "Community patch notes, comment system improvements & new feed categories",
-    "content": "Here is what's new in today's RoBeats community update:\n\n• New Song & Updates post types now supported in the feed\n• Comments are now strictly reserved for registered accounts\n• Admin Panel access secured strictly for Administrator accounts\n• Song Shop category status set to 'Working on, coming soon...'\n• Enhanced song difficulty displays across the tracks carousel",
-    "summary": "Check out the newest update features and patch notes for RoBeats.",
-    "category": "Updates",
-    "author": {
-      "name": "Meelo",
-      "role": "Admin",
-      "avatar": "https://down-vn.img.susercontent.com/file/sg-11134201-81zwv-mih44jns7q4n42"
-    },
-    "publishedAt": "2026-10-06T07:45:00.000Z",
-    "updatedAt": "2026-10-06T07:45:00.000Z",
-    "readTime": "2 min read",
-    "coverImage": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-    "coverImageCaption": "",
-    "isBreaking": false,
-    "isFeatured": false,
-    "isTrending": false,
-    "status": "published",
-    "tags": [
-      "Updates",
-      "RoBeats",
-      "Patch Notes"
-    ],
-    "views": 18,
-    "songs": []
-  },
-  {
-    "id": "post-1791270988485-e31qk",
-    "title": "Weekly missions",
-    "subtitle": "",
-    "content": "",
-    "summary": "",
-    "category": "Weekly mission",
-    "author": {
-      "name": "Meelo",
-      "role": "Admin",
-      "avatar": "https://down-vn.img.susercontent.com/file/sg-11134201-81zwv-mih44jns7q4n42"
-    },
-    "publishedAt": "2026-10-06T07:16:28.485Z",
-    "updatedAt": "2026-10-06T07:17:52.223Z",
-    "readTime": "1 min read",
-    "coverImage": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-    "coverImageCaption": "",
-    "isBreaking": false,
-    "isFeatured": false,
-    "isTrending": false,
-    "status": "published",
-    "tags": [
-      "Weekly mission",
-      "RoBeats",
-      "Missions"
-    ],
-    "views": 1,
-    "songs": [
-      {
-        "id": "song_940_alteregoism",
-        "title": "Alteregoism",
-        "artist": "Laur",
-        "coverArt": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-        "coverArtEasy": "https://i.scdn.co/image/ab67616d00001e02ab5c4020fa71d2c77202d567",
-        "coverArtNormal": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-        "coverArtHard": "https://f4.bcbits.com/img/a2878879369_10.jpg",
-        "difficulty": {
-          "easy": "8",
-          "normal": "25",
-          "hard": "32"
-        },
-        "element": "Chill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/1/18/ChillBeatIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531031720",
-        "duration": "2:31",
-        "bpm": "220",
-        "chosenDifficulty": "N"
-      },
-      {
-        "id": "song_1_monday_night_monsters",
-        "title": "Monday Night Monsters",
-        "artist": "FinnMK",
-        "coverArt": "https://example.com/normal.png",
-        "coverArtEasy": "https://example.com/easy.png",
-        "coverArtNormal": "https://example.com/normal.png",
-        "coverArtHard": "https://example.com/hard.png",
-        "difficulty": {
-          "easy": "2",
-          "normal": "10",
-          "hard": "22"
-        },
-        "element": "Rush/Flow",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/9/9c/FlowBeatIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531033310",
-        "duration": "0:572:142:14",
-        "bpm": "100",
-        "chosenDifficulty": "N"
-      }
-    ]
-  },
-  {
-    "id": "post-1790958301269-me67i",
+    "id": "post-daily-missions-initial",
     "title": "Today daily missions",
-    "subtitle": "Clear today's daily mission songs to earn bonus Star Coins & EXP!",
-    "content": "Welcome to today's RoBeats Daily Missions! Test your rhythm and timing across these selected featured tracks. Clear each track with at least an A rank or 90%+ accuracy to complete your daily challenge milestone.",
-    "summary": "Clear today's daily mission songs to earn bonus Star Coins & EXP!",
+    "subtitle": "Complete today's daily mission tracks to earn bonus Star Coins, EXP, and rank badges!",
+    "content": "Attention RoBeats players! Today's daily missions are officially live. Clear all featured tracks with at least an A rank or 90%+ accuracy to claim your mission rewards.",
+    "summary": "Complete today's daily mission tracks to earn bonus Star Coins, EXP, and rank badges!",
     "category": "Daily mission",
     "author": {
       "name": "Meelo",
       "role": "Admin",
-      "avatar": "https://down-vn.img.susercontent.com/file/sg-11134201-81zwv-mih44jns7q4n42"
+      "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
     },
-    "publishedAt": "2026-10-02T16:25:01.269Z",
-    "updatedAt": "2026-10-02T16:25:01.269Z",
+    "publishedAt": "2026-10-17T00:19:22.047Z",
+    "updatedAt": "2026-10-21T04:04:47.740Z",
     "readTime": "1 min read",
-    "coverImage": "https://static.wikia.nocookie.net/robeats/images/b/bb/Alteregoism.png/revision/latest/scale-to-width-down/100?cb=20220813150615",
-    "coverImageCaption": "",
-    "isBreaking": false,
-    "isFeatured": false,
-    "isTrending": false,
+    "coverImage": "https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704",
     "status": "published",
     "tags": [
-      "Daily mission",
+      "Daily Mission",
       "RoBeats",
-      "Challenges"
+      "Songs"
     ],
-    "views": 1,
+    "views": 28,
     "songs": [
       {
-        "id": "wiki_alteregoism_941",
-        "title": "Alteregoism",
-        "artist": "Laur",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/b/bb/Alteregoism.png/revision/latest/scale-to-width-down/100?cb=20220813150615",
-        "difficulty": {
-          "easy": "8",
-          "normal": "25",
-          "hard": "32"
-        },
-        "chosenDifficulty": "N",
-        "element": "Chill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/1/18/ChillBeatIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531031720",
-        "duration": "2:31",
-        "bpm": "220",
-        "dateAdded": "8-12-2022"
-      },
-      {
-        "id": "wiki_angel_echo_456",
-        "title": "Angel Echo",
-        "artist": "Silentroom",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/8/83/Angelecho.jpg/revision/latest/scale-to-width-down/100?cb=20210909163959",
-        "difficulty": {
-          "easy": "-",
-          "normal": "15",
-          "hard": "24"
-        },
-        "element": "BeatFlow",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/6/62/BeatFlowIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531020521",
-        "duration": "2:01",
-        "bpm": "142.41",
-        "dateAdded": "9-3-2021"
-      },
-      {
-        "id": "wiki_dune_246",
-        "title": "Dune",
-        "artist": "Creo",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/c/c6/Dune.png/revision/latest/scale-to-width-down/100?cb=20210629060928",
-        "difficulty": {
-          "easy": "-",
-          "normal": "12",
-          "hard": "21"
-        },
-        "element": "BeatChill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/b/b3/BeatChillIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531015302",
-        "duration": "2:17",
-        "bpm": "170",
-        "dateAdded": "6-28-2021"
-      },
-      {
-        "id": "wiki_similar_outskirts__chaotic_mix__extended_cut__735",
-        "title": "Similar Outskirts' Chaotic Mix [EXTENDED CUT]",
-        "artist": "Similar Outskirts (Arranged by Pyro)",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/d/d2/SimilarOutskirtsMix.png/revision/latest/scale-to-width-down/100?cb=20250503065429",
-        "difficulty": {
-          "easy": "-",
-          "normal": "18",
-          "hard": "32"
-        },
-        "element": "RushFlow",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/f/f3/RushFlowIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531020951",
-        "duration": "5:19",
-        "bpm": "150.28",
-        "dateAdded": "5-2-2025"
-      },
-      {
-        "id": "wiki_monday_night_monsters_2",
+        "id": "wiki_0",
         "title": "Monday Night Monsters",
         "artist": "FinnMK",
         "coverArt": "https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704",
@@ -249,13 +34,18 @@
           "hard": "14"
         },
         "element": "Flow",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/9/9c/FlowBeatIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531033310",
-        "duration": "0:572:142:14",
-        "bpm": "100",
-        "dateAdded": "3-15-2017"
+        "mapper": "Official RoBeats",
+        "uniqueKey": "wiki_0_0_1792555449971",
+        "chosenDifficulty": "N",
+        "missionRank": "Star",
+        "noMisses": true,
+        "isNoMisses": true,
+        "coverArtEasy": "https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704",
+        "coverArtNormal": "https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704",
+        "coverArtHard": "https://static.wikia.nocookie.net/robeats/images/f/f6/Mondaynightnormal.png/revision/latest/scale-to-width-down/100?cb=20200703131704"
       },
       {
-        "id": "wiki_daily_life_3",
+        "id": "wiki_1",
         "title": "Daily Life",
         "artist": "FinnMK",
         "coverArt": "https://static.wikia.nocookie.net/robeats/images/0/04/Daily_life.png/revision/latest/scale-to-width-down/100?cb=20210628193437",
@@ -264,14 +54,14 @@
           "normal": "2",
           "hard": "17"
         },
-        "element": "BeatChill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/b/b3/BeatChillIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531015302",
-        "duration": "2:02",
-        "bpm": "106",
-        "dateAdded": "6-28-2021"
+        "element": "Chill",
+        "mapper": "Official RoBeats",
+        "uniqueKey": "wiki_1_1_1792555449971",
+        "chosenDifficulty": "N",
+        "missionRank": "Pro"
       },
       {
-        "id": "wiki_______4",
+        "id": "wiki_2",
         "title": "[@_@]",
         "artist": "Chroma",
         "coverArt": "https://static.wikia.nocookie.net/robeats/images/2/2d/%40_%401.webp/revision/latest/scale-to-width-down/100?cb=20210317021614",
@@ -281,186 +71,44 @@
           "hard": "25"
         },
         "element": "Chill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/1/18/ChillBeatIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531031720",
-        "duration": "1:42",
-        "bpm": "158",
-        "dateAdded": "3-16-2021"
+        "mapper": "Official RoBeats",
+        "uniqueKey": "wiki_2_2_1792555449971",
+        "chosenDifficulty": "N",
+        "missionRank": "Amateur",
+        "noMisses": true,
+        "isNoMisses": true
       },
       {
-        "id": "wiki_epic_8",
-        "title": "EPIC",
-        "artist": "Tokyo Machine [Monstercat]",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/a/a4/EpicN.png/revision/latest/scale-to-width-down/100?cb=20210804134320",
-        "difficulty": {
-          "easy": "1",
-          "normal": "3",
-          "hard": "19"
-        },
-        "element": "BeatVibe",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/4/42/BeatVibeIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531030032",
-        "duration": "1:50",
-        "bpm": "128",
-        "dateAdded": "9-8-2020"
-      },
-      {
-        "id": "wiki_fresh_9",
-        "title": "Fresh",
-        "artist": "Kawai Sprite",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/b/ba/Freshnormal.png/revision/latest/scale-to-width-down/100?cb=20201226091534",
+        "id": "wiki_3",
+        "title": "Adopt Me",
+        "artist": "BSlick",
+        "coverArt": "https://static.wikia.nocookie.net/robeats/images/e/ea/Adopt_me_.png/revision/latest/scale-to-width-down/100?cb=20210724211804",
         "difficulty": {
           "easy": "-",
           "normal": "3",
-          "hard": "14"
+          "hard": "16"
         },
-        "element": "BeatRush",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/c/cd/BeatRushIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531025010",
-        "duration": "1:21",
-        "bpm": "120",
-        "dateAdded": "12-25-2020"
+        "element": "VibeRush",
+        "mapper": "Official RoBeats",
+        "uniqueKey": "wiki_3_3_1792555449971",
+        "chosenDifficulty": "N",
+        "missionRank": "Novice"
       },
       {
-        "id": "wiki_jump__goober__jump___10",
-        "title": "Jump, Goober, Jump!!",
-        "artist": "Joshua Kaplan (Open Heart Sounds)",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/1/1e/Jgj_cover_art.png/revision/latest/scale-to-width-down/100?cb=20210525231545",
+        "id": "wiki_4",
+        "title": "Better Run",
+        "artist": "Rutra",
+        "coverArt": "https://static.wikia.nocookie.net/robeats/images/0/01/Betterrunnormal.png/revision/latest/scale-to-width-down/100?cb=20210329021801",
         "difficulty": {
           "easy": "-",
           "normal": "3",
-          "hard": "22"
-        },
-        "element": "FlowChill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/6/6a/FlowChillIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531013154",
-        "duration": "2:32",
-        "bpm": "147.31",
-        "dateAdded": "5-22-2021"
-      },
-      {
-        "id": "wiki_aurora_19",
-        "title": "Aurora",
-        "artist": "Creo",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/9/96/Auroranormal.png/revision/latest/scale-to-width-down/100?cb=20210629093107",
-        "difficulty": {
-          "easy": "-",
-          "normal": "4",
-          "hard": "22"
-        },
-        "element": "Chill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/5/5b/ChillIconSmall.png/revision/latest/scale-to-width-down/40?cb=20211217031254",
-        "duration": "2:36",
-        "bpm": "184",
-        "dateAdded": "6-28-2021"
-      },
-      {
-        "id": "wiki_dance_of_the_sugar_plum_fairy_20",
-        "title": "Dance of the Sugar Plum Fairy",
-        "artist": "Tchaikovsky (Performed by Rousseau)",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/2/25/Suagrplum.png/revision/latest/scale-to-width-down/100?cb=20210916131312",
-        "difficulty": {
-          "easy": "-",
-          "normal": "4",
-          "hard": "20"
-        },
-        "element": "Flow",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/a/ad/FlowIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210530220045",
-        "duration": "1:54",
-        "bpm": "112.39",
-        "dateAdded": "9-15-2021"
-      },
-      {
-        "id": "wiki_the_vocab_quiz_25",
-        "title": "The Vocab Quiz",
-        "artist": "tv room",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/e/e7/Vocabquiznormal.png/revision/latest/scale-to-width-down/100?cb=20210418003506",
-        "difficulty": {
-          "easy": "1",
-          "normal": "4",
-          "hard": "19"
-        },
-        "element": "Chill",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/5/5b/ChillIconSmall.png/revision/latest/scale-to-width-down/40?cb=20211217031254",
-        "duration": "1:42",
-        "bpm": "117",
-        "dateAdded": "4-17-2021"
-      },
-      {
-        "id": "wiki_this_future__we_didn_t_expect__26",
-        "title": "This Future (we didn't expect)",
-        "artist": "Camellia",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/c/c7/Thisfuturewedidn%27texpectnormal.png/revision/latest/scale-to-width-down/100?cb=20210128003922",
-        "difficulty": {
-          "easy": "-",
-          "normal": "4",
-          "hard": "25"
-        },
-        "element": "FlowRush",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/b/b5/FlowRushIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531024327",
-        "duration": "1:42",
-        "bpm": "180",
-        "dateAdded": "1-26-2021"
-      },
-      {
-        "id": "wiki_2_sides_27",
-        "title": "2 Sides",
-        "artist": "KepoWorld",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/2/25/2_n.png/revision/latest/scale-to-width-down/100?cb=20211117075338",
-        "difficulty": {
-          "easy": "-",
-          "normal": "5",
-          "hard": "23"
-        },
-        "element": "Vibe",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/3/3d/VibeBeatIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531032350",
-        "duration": "2:57",
-        "bpm": "128",
-        "dateAdded": "5-6-2021"
-      },
-      {
-        "id": "wiki_decoy_world_vip__extended_cut__33",
-        "title": "Decoy World VIP [EXTENDED CUT]",
-        "artist": "INTERCOM feat. Park Avenue [Monstercat]",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/0/02/Decoyworldfullextendedcut.png/revision/latest/scale-to-width-down/100?cb=20221002154508",
-        "difficulty": {
-          "easy": "-",
-          "normal": "5",
-          "hard": "18"
-        },
-        "element": "RushVibe",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/5/50/RushVibeIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531030344",
-        "duration": "4:30",
-        "bpm": "174",
-        "dateAdded": "3-5-2022"
-      },
-      {
-        "id": "wiki_drifters_34",
-        "title": "Drifters",
-        "artist": "Feint feat. Elizaveta [Monstercat]",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/2/2c/DriftersN.png/revision/latest/scale-to-width-down/100?cb=20210804134302",
-        "difficulty": {
-          "easy": "-",
-          "normal": "5",
           "hard": "21"
         },
-        "element": "BeatRush",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/c/cd/BeatRushIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210531025010",
-        "duration": "2:01",
-        "bpm": "174",
-        "dateAdded": "9-8-2020"
-      },
-      {
-        "id": "wiki_omega_x2_parts__extended_cut__977",
-        "title": "Omega(x2)PARTS [EXTENDED CUT]",
-        "artist": "Camellia",
-        "coverArt": "https://static.wikia.nocookie.net/robeats/images/a/ab/Ooparts.jpeg/revision/latest/scale-to-width-down/100?cb=20221202080801",
-        "difficulty": {
-          "easy": "-",
-          "normal": "28",
-          "hard": "35"
-        },
-        "element": "Flow",
-        "elementIcon": "https://static.wikia.nocookie.net/robeats/images/a/ad/FlowIconSmall.png/revision/latest/scale-to-width-down/40?cb=20210530220045",
-        "duration": "6:43",
-        "bpm": "171.52172.15",
-        "dateAdded": "7-14-2021"
+        "element": "ChillRush",
+        "mapper": "Official RoBeats",
+        "uniqueKey": "wiki_4_4_1792555449971",
+        "chosenDifficulty": "N",
+        "missionRank": "Beginner"
       }
     ]
   }

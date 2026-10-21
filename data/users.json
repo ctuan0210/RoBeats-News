@@ -43,8 +43,8 @@
     "id": "usr_1790958158458_0nic",
     "username": "staff_tester",
     "email": "staff_tester@robeats.news",
-    "passwordHash": "2664553a1e24d00415c1ebce6aab4843a14ddb9f667b222be839964efd5932ff",
-    "displayName": "Staff Tester",
+    "passwordHash": "8f312dfe79761b353844c250096430e93f06b3bee18a0d9ee774e3b04cb9025d",
+    "displayName": "Staff Star",
     "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
     "bio": "RoBeats rhythm player",
     "roBeatsRank": "Rhythm Adept",
@@ -55,9 +55,13 @@
       "canChangePasswords": false,
       "canEditProfiles": false,
       "canManageRoles": false,
-      "canPublishNews": false,
+      "canPublishNews": true,
       "canDeleteContent": false,
-      "canAccessAdminPanel": false
+      "canAccessAdminPanel": false,
+      "canEditAllNews": false,
+      "canManageSongs": false,
+      "canManageWebhooks": false,
+      "canManageRanks": false
     },
     "createdAt": "2026-10-02T16:22:38.458Z"
   }

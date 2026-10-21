@@ -26,6 +26,8 @@ interface AuthContextType {
   fetchAllUsers: () => Promise<void>;
   switchUser: (targetUser: User) => void;
   clearError: () => void;
+  isAdmin: boolean;
+  isStaff: boolean;
   // Admin Operations
   adminGetUsers: () => Promise<User[]>;
   adminGetStats: () => Promise<any>;
@@ -39,7 +41,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('robeats_auth_token'));
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('robeats_auth_token') || localStorage.getItem('robeats_token'));
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -109,6 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('robeats_auth_token', data.token);
+      localStorage.setItem('robeats_token', data.token);
       return true;
     } catch (err: any) {
       setAuthError(err.message || 'Network error during login.');
@@ -146,6 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       setToken(data.token);
       localStorage.setItem('robeats_auth_token', data.token);
+      localStorage.setItem('robeats_token', data.token);
       return true;
     } catch (err: any) {
       setAuthError(err.message || 'Network error during signup.');
@@ -157,6 +161,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('robeats_auth_token');
+    localStorage.removeItem('robeats_token');
     setToken(null);
     setUser(null);
     setAuthError(null);
@@ -380,12 +385,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const isAdmin = user?.role === 'admin' || user?.role === 'robeatsdev';
+  const isStaff = isAdmin || user?.role === 'staff' || user?.role === 'editor';
+
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
         isAuthenticated: Boolean(user),
+        isAdmin,
+        isStaff,
         isLoading,
         authError,
         login,

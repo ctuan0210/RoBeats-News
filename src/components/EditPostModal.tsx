@@ -29,6 +29,8 @@ import { NewsArticle, SongEntry, ElementConfig, RankConfig, RoBeatsRank } from '
 import { useAuth } from '../context/AuthContext';
 import { fetchSongList, fetchElementsList, fetchRanksList, publishNewsToDiscordWebhook } from '../services/fandomService';
 import { getElementData } from '../constants/elements';
+import { SongDetailsModal } from './SongDetailsModal';
+import { FramedSongCover } from './FramedSongCover';
 
 export type PostCategoryType = 'Daily mission' | 'Weekly mission' | 'Weekly Leaderboard' | 'New song' | 'Updates';
 
@@ -74,6 +76,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
 
   // Drag and drop indices
   const [draggedSongIdx, setDraggedSongIdx] = useState<number | null>(null);
+  const [selectedSongDetail, setSelectedSongDetail] = useState<SongEntry | null>(null);
 
   // Initialize form when post changes
   useEffect(() => {
@@ -86,7 +89,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
           ? post.category
           : 'Daily mission';
       setCategory(validCategory);
-      setMissionRank(post.missionRank || 'Star');
+      setMissionRank((post.missionRank as RoBeatsRank) || 'Star');
       setSelectedSongs(
         (post.songs || []).map((s, idx) => {
           let rank = s.missionRank;
@@ -139,7 +142,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
     return allAvailableSongs.filter(s => 
       s.title.toLowerCase().includes(q) ||
       s.artist.toLowerCase().includes(q) ||
-      s.element.toLowerCase().includes(q)
+      (s.element && s.element.toLowerCase().includes(q))
     ).slice(0, 50);
   }, [allAvailableSongs, songSearchQuery]);
 
@@ -301,7 +304,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
         missionRank: (category === 'Daily mission' || category === 'Weekly mission') ? s.missionRank : undefined,
         noMisses: category === 'Daily mission' ? (Boolean(s.noMisses || s.isNoMisses) || undefined) : undefined,
         isNoMisses: category === 'Daily mission' ? (Boolean(s.noMisses || s.isNoMisses) || undefined) : undefined,
-        requiredScore: category === 'Weekly mission' ? (s.requiredScore?.trim() || undefined) : undefined,
+        requiredScore: category === 'Weekly mission' ? (String(s.requiredScore ?? '').trim() || undefined) : undefined,
       }));
 
       const existingTags = post.tags || [category, 'RoBeats'];
@@ -366,7 +369,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
         missionRank: category === 'Weekly mission' ? (idx === 0 ? 'Star' : 'Pro') : s.missionRank,
         noMisses: category === 'Daily mission' ? (Boolean(s.noMisses || s.isNoMisses) || undefined) : undefined,
         isNoMisses: category === 'Daily mission' ? (Boolean(s.noMisses || s.isNoMisses) || undefined) : undefined,
-        requiredScore: category === 'Weekly mission' ? (s.requiredScore?.trim() || undefined) : undefined,
+        requiredScore: category === 'Weekly mission' ? (String(s.requiredScore ?? '').trim() || undefined) : undefined,
       }));
 
       const existingTags = post.tags || [category, 'RoBeats'];
@@ -611,7 +614,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
 
                 <div className="max-h-48 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
                   {filteredPickerSongs.map(song => {
-                    const elData = getElementData(song.element, elements);
+                    const elData = getElementData(song.element || '', elements);
                     const displayCover = song.coverArtNormal || song.coverArtEasy || song.coverArtHard || song.coverArt;
                     const isMax = (category === 'Weekly mission' && selectedSongs.length >= 2) || (category === 'Weekly Leaderboard' && selectedSongs.length >= 8);
 
@@ -627,13 +630,12 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
                             : 'cursor-pointer hover:bg-zinc-900/80 border-transparent hover:border-cyan-500/30'
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 overflow-hidden">
-                          <img
-                            src={displayCover}
-                            alt={song.title}
-                            className="w-7 h-7 rounded object-cover border border-zinc-800 shrink-0"
-                            onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                          />
+                          <div className="flex items-center gap-2.5 overflow-hidden">
+                            <FramedSongCover
+                              coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
+                              difficulty="normal"
+                              className="w-7 h-7 rounded shrink-0 shadow"
+                            />
                           <div className="truncate">
                             <span className="text-xs font-semibold text-white block truncate">{song.title}</span>
                             <div className="flex items-center gap-1.5 text-[10px] text-zinc-400">
@@ -685,7 +687,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {selectedSongs.map((song, idx) => {
                   const songKey = song.uniqueKey || `${song.id}_${idx}`;
-                  const elData = getElementData(song.element, elements);
+                  const elData = getElementData(song.element || '', elements);
                   const chosen = song.chosenDifficulty || 'N';
                   const displayCover = 
                     chosen === 'E' 
@@ -709,18 +711,23 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
                           <div className="flex items-center text-zinc-600 hover:text-zinc-300 mr-0.5">
                             <GripVertical className="w-4 h-4" />
                           </div>
-                          <div className="relative shrink-0">
-                            <img
-                              src={displayCover}
-                              alt={song.title}
-                              className="w-10 h-10 rounded-lg object-cover border border-zinc-800"
-                            />
-                            <span className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-cyan-500 text-zinc-950 font-bold text-[9px] flex items-center justify-center">
+                          <FramedSongCover
+                            coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
+                            difficulty={chosen}
+                            className="w-10 h-10 rounded-lg shadow shrink-0"
+                            onClick={() => setSelectedSongDetail(song)}
+                            title="Click to view song details & difficulty frames"
+                          >
+                            <span className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-cyan-500 text-zinc-950 font-bold text-[9px] flex items-center justify-center z-20">
                               {idx + 1}
                             </span>
-                          </div>
-                          <div className="min-w-0">
-                            <h5 className="text-xs font-bold text-white truncate">{song.title}</h5>
+                          </FramedSongCover>
+                          <div 
+                            onClick={() => setSelectedSongDetail(song)}
+                            className="min-w-0 cursor-pointer"
+                            title="Click to view song details & difficulty frames"
+                          >
+                            <h5 className="text-xs font-bold text-white truncate hover:text-cyan-400 transition-colors">{song.title}</h5>
                             <p className="text-[11px] text-zinc-400 truncate">{song.artist}</p>
                           </div>
                         </div>
@@ -957,6 +964,18 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Song Details Modal for editing 3 covers */}
+      {selectedSongDetail && (
+        <SongDetailsModal
+          song={selectedSongDetail}
+          onClose={() => setSelectedSongDetail(null)}
+          onSongUpdated={(updated) => {
+            setSelectedSongDetail(updated);
+            setSelectedSongs(prev => prev.map(s => s.id === updated.id ? { ...s, ...updated } : s));
+          }}
+        />
+      )}
     </div>
   );
 };

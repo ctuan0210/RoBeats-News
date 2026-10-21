@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" fill="none">
+  <!-- Outer Frame -->
+  <rect x="5" y="5" width="190" height="190" rx="14" stroke="#10B981" stroke-width="8" />
+  <!-- Neon Corner Brackets -->
+  <path d="M5 40 V16 A11 11 0 0 1 16 5 H40" stroke="#34D399" stroke-width="12" stroke-linecap="round" />
+  <path d="M160 5 H184 A11 11 0 0 1 195 16 V40" stroke="#34D399" stroke-width="12" stroke-linecap="round" />
+  <path d="M5 160 V184 A11 11 0 0 0 16 195 H40" stroke="#34D399" stroke-width="12" stroke-linecap="round" />
+  <path d="M160 195 H184 A11 11 0 0 0 195 184 V160" stroke="#34D399" stroke-width="12" stroke-linecap="round" />
+  <!-- Inner Dashed Rhythm Circuit -->
+  <rect x="17" y="17" width="166" height="166" rx="8" stroke="#059669" stroke-width="2.5" stroke-dasharray="10 6" />
+  <!-- Easy Badge Accent Top Left -->
+  <polygon points="5,5 42,5 5,42" fill="#10B981" />
+  <circle cx="17" cy="17" r="3.5" fill="#064E3B" />
+  <!-- Easy Badge Bottom Right Accent -->
+  <polygon points="195,195 158,195 195,158" fill="#10B981" />
+  <circle cx="183" cy="183" r="3.5" fill="#064E3B" />
+</svg>

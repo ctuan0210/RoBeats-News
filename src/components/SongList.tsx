@@ -1,960 +1,622 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Music, 
-  Search, 
-  RefreshCw, 
-  ShieldAlert, 
-  PlusCircle, 
-  Trash2, 
-  Edit3, 
-  Check, 
-  X, 
-  SlidersHorizontal, 
-  Lock, 
-  Sparkles, 
-  ChevronLeft, 
-  ChevronRight, 
-  Database, 
-  ArrowUpDown, 
-  CheckCircle2, 
-  AlertCircle,
-  Eye,
-  Disc,
-  Image as ImageIcon,
-  Loader2
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Song, ElementConfig, SongEntry, DifficultyFramesConfig, DEFAULT_DIFFICULTY_FRAMES, hasDifficulty } from '../types';
+import { fetchSongsList, saveSong, deleteSong, fetchElementsList } from '../services/api';
+import { fetchDifficultyFrames } from '../services/fandomService';
 import { useAuth } from '../context/AuthContext';
-import { SongEntry, ElementConfig } from '../types';
-import { 
-  fetchSongList, 
-  adminAddSong, 
-  adminEditSong, 
-  adminDeleteSong,
-  fetchElementsList
-} from '../services/fandomService';
-import { ALL_ELEMENT_NAMES, getElementData } from '../constants/elements';
+import { Music, Plus, Trash2, Edit2, Search, Image as ImageIcon, Eye, Sparkles } from 'lucide-react';
 import { SongDetailsModal } from './SongDetailsModal';
+import { FramedSongCover } from './FramedSongCover';
 
-interface SongListProps {
-  onOpenAccount: (tab?: 'login' | 'signup') => void;
-}
-
-export const SongList: React.FC<SongListProps> = ({ onOpenAccount }) => {
-  const { user, isAuthenticated } = useAuth();
-
-  // Role visibility check: ONLY visible to users with "Admin" role
-  const isAdmin = isAuthenticated && user?.role === 'admin';
-
-  const [songs, setSongs] = useState<SongEntry[]>([]);
+export const SongList: React.FC<{ onOpenAccount?: (tab?: 'login' | 'profile' | 'signup') => void }> = () => {
+  const [songs, setSongs] = useState<Song[]>([]);
   const [elements, setElements] = useState<ElementConfig[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [elementFilter, setElementFilter] = useState('All');
-  const [sortBy, setSortBy] = useState<'name' | 'normalDiff' | 'hardDiff' | 'artist'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [frames, setFrames] = useState<DifficultyFramesConfig>(DEFAULT_DIFFICULTY_FRAMES);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [selectedElement, setSelectedElement] = useState<string>('all');
+  const [cardDiffView, setCardDiffView] = useState<Record<string, 'easy' | 'normal' | 'hard'>>({});
+  
+  // Modal for add / edit
+  const [editingSong, setEditingSong] = useState<Partial<Song> | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalPreviewDiff, setModalPreviewDiff] = useState<'easy' | 'normal' | 'hard'>('normal');
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
+  // Modal for viewing / editing song details and frames
+  const [selectedSongDetail, setSelectedSongDetail] = useState<SongEntry | null>(null);
 
-  // Modal States
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingSong, setEditingSong] = useState<SongEntry | null>(null);
-  const [viewingSong, setViewingSong] = useState<SongEntry | null>(null);
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-
-  // Quick Cover Art Modal State (Admin)
-  const [coverModalSong, setCoverModalSong] = useState<SongEntry | null>(null);
-  const [coverModalUrl, setCoverModalUrl] = useState('');
-  const [isSavingCoverModal, setIsSavingCoverModal] = useState(false);
-
-  // Form states for Add / Edit
-  const [formTitle, setFormTitle] = useState('');
-  const [formArtist, setFormArtist] = useState('');
-  const [formMapper, setFormMapper] = useState('');
-  const [formCoverArt, setFormCoverArt] = useState('');
-  const [formEasy, setFormEasy] = useState('-');
-  const [formNormal, setFormNormal] = useState('1');
-  const [formHard, setFormHard] = useState('10');
-  const [formElement, setFormElement] = useState('Flow');
-
-  // Notifications
-  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  const showNotification = (message: string, type: 'success' | 'error' = 'success') => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 3500);
-  };
-
-  const loadData = async (force: boolean = false) => {
-    if (force) setIsRefreshing(true);
-    else setIsLoading(true);
-
-    try {
-      const [songData, elementData] = await Promise.all([
-        fetchSongList(force),
-        fetchElementsList()
-      ]);
-      setSongs(songData);
-      setElements(elementData);
-      if (force) {
-        showNotification(`Refreshed ${songData.length} songs from database!`);
-      }
-    } catch {
-      showNotification('Failed to load songs from local database', 'error');
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  };
+  const { isStaff, isAdmin } = useAuth();
 
   useEffect(() => {
-    if (isAdmin) {
-      loadData();
-    }
-  }, [isAdmin]);
-
-  // Unique elements for filter
-  const filterElementsList = useMemo(() => {
-    return ['All', ...ALL_ELEMENT_NAMES];
+    loadData();
   }, []);
 
-  // Filtered & sorted songs
-  const filteredSongs = useMemo(() => {
-    return songs
-      .filter(song => {
-        const matchesQuery = 
-          song.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          song.artist.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesElement = elementFilter === 'All' || song.element.toLowerCase() === elementFilter.toLowerCase();
-        return matchesQuery && matchesElement;
-      })
-      .sort((a, b) => {
-        let diff = 0;
-        if (sortBy === 'name') {
-          diff = a.title.localeCompare(b.title);
-        } else if (sortBy === 'artist') {
-          diff = a.artist.localeCompare(b.artist);
-        } else if (sortBy === 'normalDiff') {
-          const numA = parseInt(a.difficulty.normal) || 0;
-          const numB = parseInt(b.difficulty.normal) || 0;
-          diff = numA - numB;
-        } else if (sortBy === 'hardDiff') {
-          const numA = parseInt(a.difficulty.hard) || 0;
-          const numB = parseInt(b.difficulty.hard) || 0;
-          diff = numA - numB;
-        }
-        return sortOrder === 'asc' ? diff : -diff;
-      });
-  }, [songs, searchQuery, elementFilter, sortBy, sortOrder]);
-
-  // Pagination slicing
-  const totalPages = Math.ceil(filteredSongs.length / pageSize) || 1;
-  const paginatedSongs = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredSongs.slice(start, start + pageSize);
-  }, [filteredSongs, currentPage, pageSize]);
-
-  // Reset page when filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, elementFilter, pageSize]);
-
-  // Open edit modal
-  const handleOpenEdit = (song: SongEntry) => {
-    setEditingSong(song);
-    setFormTitle(song.title);
-    setFormArtist(song.artist);
-    setFormMapper(song.mapper || '');
-    setFormCoverArt(song.coverArtNormal || song.coverArt || '');
-    setFormEasy(song.difficulty.easy || '-');
-    setFormNormal(song.difficulty.normal || '-');
-    setFormHard(song.difficulty.hard || '-');
-    setFormElement(song.element || 'Flow');
-  };
-
-  // Open add modal
-  const handleOpenAdd = () => {
-    setIsAddModalOpen(true);
-    setFormTitle('');
-    setFormArtist('');
-    setFormMapper('');
-    setFormCoverArt('');
-    setFormEasy('-');
-    setFormNormal('1');
-    setFormHard('10');
-    setFormElement('Flow');
-  };
-
-  // Open quick cover modal
-  const handleOpenCoverModal = (song: SongEntry) => {
-    setCoverModalSong(song);
-    setCoverModalUrl(song.coverArtNormal || song.coverArt || '');
-  };
-
-  // Save quick cover modal
-  const handleSaveCoverModal = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!coverModalSong) return;
-    setIsSavingCoverModal(true);
-
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const trimmedUrl = coverModalUrl.trim();
-      const updates = {
-        coverArt: trimmedUrl,
-        coverArtNormal: trimmedUrl,
-        coverArtEasy: trimmedUrl,
-        coverArtHard: trimmedUrl,
-      };
-
-      const updated = await adminEditSong(coverModalSong.id, updates);
-      setSongs(prev => prev.map(s => s.id === updated.id ? updated : s));
-      if (viewingSong && viewingSong.id === updated.id) {
-        setViewingSong(updated);
-      }
-      setCoverModalSong(null);
-      showNotification(`Cover Art URL for "${updated.title}" updated successfully!`);
-    } catch (err: any) {
-      showNotification(err.message || 'Failed to update Cover Art URL', 'error');
+      const [songsData, elementsData, framesData] = await Promise.all([
+        fetchSongsList().catch(() => []),
+        fetchElementsList().catch(() => []),
+        fetchDifficultyFrames().catch(() => DEFAULT_DIFFICULTY_FRAMES),
+      ]);
+      setSongs(songsData);
+      setElements(elementsData);
+      setFrames(framesData);
+    } catch (err) {
+      console.error('Error loading songs:', err);
     } finally {
-      setIsSavingCoverModal(false);
+      setLoading(false);
     }
   };
 
-  // Save edit
-  const handleSaveEdit = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingSong) return;
+    if (!editingSong || !editingSong.title) return;
 
     try {
-      const primaryCover = formCoverArt.trim() || editingSong.coverArt;
-      const updates = {
-        title: formTitle.trim(),
-        artist: formArtist.trim(),
-        mapper: formMapper.trim() || undefined,
-        coverArt: primaryCover,
-        coverArtNormal: primaryCover,
-        coverArtEasy: primaryCover,
-        coverArtHard: primaryCover,
-        difficulty: {
-          easy: formEasy.trim(),
-          normal: formNormal.trim(),
-          hard: formHard.trim(),
-        },
-        element: formElement,
+      const singleCover = (editingSong.coverArt || editingSong.coverArtNormal || editingSong.coverArtEasy || editingSong.coverArtHard || '').trim();
+
+      const payload: Partial<Song> = {
+        ...editingSong,
+        title: editingSong.title.trim(),
+        artist: editingSong.artist?.trim() || 'Unknown Artist',
+        mapper: editingSong.mapper?.trim() || 'Official RoBeats',
+        coverArt: singleCover,
+        coverArtNormal: singleCover,
+        coverArtEasy: singleCover,
+        coverArtHard: singleCover,
       };
 
-      const updated = await adminEditSong(editingSong.id, updates);
-      setSongs(prev => prev.map(s => s.id === updated.id ? updated : s));
+      await saveSong(payload, editingSong.id);
+      setShowModal(false);
       setEditingSong(null);
-      showNotification(`Updated song "${formTitle}" successfully!`);
+      loadData();
     } catch (err: any) {
-      showNotification(err.message || 'Failed to update song', 'error');
+      alert(err.message || 'Failed to save song');
     }
   };
 
-  // Save new song
-  const handleSaveAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formTitle.trim()) {
-      showNotification('Song title is required', 'error');
-      return;
-    }
-
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this song chart from database?')) return;
     try {
-      const primaryCover = formCoverArt.trim() || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=120&auto=format&fit=crop&q=80';
-      const newSong = {
-        title: formTitle.trim(),
-        artist: formArtist.trim() || 'Unknown Artist',
-        mapper: formMapper.trim() || undefined,
-        coverArt: primaryCover,
-        difficulty: {
-          easy: formEasy.trim() || '-',
-          normal: formNormal.trim() || '-',
-          hard: formHard.trim() || '-',
-        },
-        element: formElement,
-        duration: '2:30',
-        bpm: '120',
-      };
-
-      const created = await adminAddSong(newSong);
-      setSongs(prev => [created, ...prev]);
-      setIsAddModalOpen(false);
-      showNotification(`Added new song "${created.title}" successfully!`);
+      await deleteSong(id);
+      loadData();
     } catch (err: any) {
-      showNotification(err.message || 'Failed to add song', 'error');
+      alert(err.message || 'Failed to delete song');
     }
   };
 
-  // Delete song
-  const handleDeleteSong = async (id: string) => {
-    try {
-      await adminDeleteSong(id);
-      setSongs(prev => prev.filter(s => s.id !== id));
-      setDeleteConfirmId(null);
-      showNotification('Song deleted from database');
-    } catch (err: any) {
-      showNotification(err.message || 'Failed to delete song', 'error');
-    }
-  };
-
-  // Access check: only Admin can view and edit Song List
-  if (!isAdmin) {
-    return (
-      <div className="max-w-md mx-auto my-16 p-8 bg-[#111622] border border-amber-500/30 rounded-2xl text-center">
-        <ShieldAlert className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-white mb-2">Administrator Access Required</h2>
-        <p className="text-xs text-zinc-400 mb-5">
-          The RoBeats Song List database and editing tools are strictly restricted to Admin accounts.
-        </p>
-        {!isAuthenticated && (
-          <button
-            onClick={() => onOpenAccount('login')}
-            className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold cursor-pointer"
-          >
-            Log In as Admin
-          </button>
-        )}
-      </div>
-    );
-  }
+  const filteredSongs = songs.filter((s) => {
+    const matchSearch =
+      s.title.toLowerCase().includes(search.toLowerCase()) ||
+      s.artist.toLowerCase().includes(search.toLowerCase()) ||
+      (s.mapper && s.mapper.toLowerCase().includes(search.toLowerCase()));
+    const matchElement = selectedElement === 'all' || s.element?.toLowerCase() === selectedElement.toLowerCase();
+    return matchSearch && matchElement;
+  });
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
-      {/* Top Banner & Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-zinc-800">
+    <div className="space-y-6 max-w-6xl mx-auto px-4 sm:px-6 py-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-white tracking-tight">Song Database</h1>
-            <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold uppercase">
-              Admin Only
-            </span>
-          </div>
+          <h2 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
+            <Music className="w-5 h-5 text-cyan-400" />
+            RoBeats Song Database & Difficulty Frames
+          </h2>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Internal songs database: <strong>{songs.length}</strong> songs stored locally (disconnected from Fandom wiki).
+            Per song 1 cover art, with difficulty frames overlaid (Easy frame, Hard frame, Normal nothing frame).
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        {isStaff && (
           <button
-            onClick={() => loadData(true)}
-            disabled={isRefreshing}
-            className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700 text-xs font-semibold flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            onClick={() => {
+              setEditingSong({
+                title: '',
+                artist: '',
+                mapper: 'Official RoBeats',
+                element: 'Flow',
+                difficulty: { easy: '1', normal: '5', hard: '12' },
+                coverArt: '',
+              });
+              setModalPreviewDiff('normal');
+              setShowModal(true);
+            }}
+            className="px-3.5 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold text-xs rounded-xl flex items-center gap-1.5 transition self-start sm:self-auto cursor-pointer shadow-md"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <Plus className="w-4 h-4" />
+            Add New Song Chart
           </button>
-
-          <button
-            onClick={handleOpenAdd}
-            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/20"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Add Song</span>
-          </button>
-        </div>
+        )}
       </div>
 
-      {/* Notification Toast */}
-      {notification && (
-        <div className={`p-3 rounded-xl border flex items-center gap-2 text-xs ${
-          notification.type === 'success' 
-            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' 
-            : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
-        }`}>
-          {notification.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
-          ) : (
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-          )}
-          <span>{notification.message}</span>
-        </div>
-      )}
-
-      {/* Filters & Search Toolbar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5 bg-[#10141E] p-3 rounded-xl border border-zinc-800 text-xs">
-        {/* Search */}
+      {/* Filter / Search Bar */}
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+          <Search className="w-4 h-4 absolute left-3 top-2.5 text-zinc-500" />
           <input
             type="text"
-            placeholder="Search songs by title or artist..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500"
+            placeholder="Search by title, artist, or mapper..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
           />
         </div>
 
-        {/* Element Filter */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="text-zinc-400 text-[11px]">Element:</span>
-            <select
-              value={elementFilter}
-              onChange={e => setElementFilter(e.target.value)}
-              className="py-1 px-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 text-xs focus:outline-none focus:border-cyan-500"
-            >
-              {filterElementsList.map(el => (
-                <option key={el} value={el}>{el}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Sort */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-zinc-400 text-[11px]">Sort:</span>
-            <select
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value as any)}
-              className="py-1 px-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 text-xs focus:outline-none focus:border-cyan-500"
-            >
-              <option value="name">Song Name</option>
-              <option value="artist">Artist</option>
-              <option value="normalDiff">Normal Diff</option>
-              <option value="hardDiff">Hard Diff</option>
-            </select>
-
-            <button
-              onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-              className="p-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 cursor-pointer"
-              title="Toggle sort direction"
-            >
-              <ArrowUpDown className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Page size */}
-          <div className="flex items-center gap-1">
-            <span className="text-zinc-400 text-[11px]">Per Page:</span>
-            <select
-              value={pageSize}
-              onChange={e => setPageSize(Number(e.target.value))}
-              className="py-1 px-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-300 text-xs"
-            >
-              <option value="25">25</option>
-              <option value="50">50</option>
-              <option value="100">100</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Song Table */}
-      <div className="rounded-xl border border-zinc-800 overflow-hidden bg-[#0A0D14]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
-            <thead className="bg-[#121622] text-zinc-400 uppercase font-mono text-[10px] tracking-wider border-b border-zinc-800">
-              <tr>
-                <th className="py-2.5 px-3 text-center w-14">Cover</th>
-                <th className="py-2.5 px-3">Title</th>
-                <th className="py-2.5 px-3">Artist</th>
-                <th className="py-2.5 px-3 text-center">Difficulties (E / N / H)</th>
-                <th className="py-2.5 px-3">Element</th>
-                <th className="py-2.5 px-3 text-right">Admin Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800/80">
-              {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="py-16 text-center text-zinc-500">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-cyan-400" />
-                    <span>Loading song database...</span>
-                  </td>
-                </tr>
-              ) : paginatedSongs.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-500">
-                    No songs found matching query.
-                  </td>
-                </tr>
-              ) : (
-                paginatedSongs.map(song => {
-                  const elData = getElementData(song.element, elements);
-                  return (
-                    <tr key={song.id} className="hover:bg-zinc-900/60">
-                      {/* Cover */}
-                      <td className="py-2 px-3 text-center">
-                        <div className="relative inline-block group">
-                          <div 
-                            onClick={() => setViewingSong(song)}
-                            className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 overflow-hidden inline-flex items-center justify-center cursor-pointer shadow-xs"
-                            title="Click to view song details & cover art"
-                          >
-                            <img
-                              src={song.coverArtNormal || song.coverArt}
-                              alt={song.title}
-                              className="w-full h-full object-cover"
-                              onError={e => {
-                                (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=120&auto=format&fit=crop&q=80';
-                              }}
-                            />
-                          </div>
-
-                          {isAdmin && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenCoverModal(song);
-                              }}
-                              className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 rounded-lg flex items-center justify-center text-cyan-300 transition-opacity cursor-pointer"
-                              title="Change Cover Art URL"
-                            >
-                              <ImageIcon className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Title */}
-                      <td className="py-2 px-3">
-                        <div 
-                          onClick={() => setViewingSong(song)}
-                          className="font-bold text-white hover:text-cyan-300 cursor-pointer flex items-center gap-1.5"
-                        >
-                          <span>{song.title}</span>
-                          {song.isCustom && (
-                            <span className="text-[8px] uppercase px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono">
-                              Custom
-                            </span>
-                          )}
-                        </div>
-                        {song.mapper && (
-                          <div className="text-[10px] text-zinc-500">Mapper: {song.mapper}</div>
-                        )}
-                      </td>
-
-                      {/* Artist */}
-                      <td className="py-2 px-3 text-zinc-400">{song.artist}</td>
-
-                      {/* Difficulties */}
-                      <td className="py-2 px-3 text-center">
-                        <div className="inline-flex items-center gap-1 font-mono font-bold text-[10px]">
-                          <span className="px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300" title="Easy">
-                            {song.difficulty?.easy || '-'}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-blue-500/15 border border-blue-500/30 text-blue-300" title="Normal">
-                            {song.difficulty?.normal || '-'}
-                          </span>
-                          <span className="px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300" title="Hard">
-                            {song.difficulty?.hard || '-'}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Linked Element with Image */}
-                      <td className="py-2 px-3">
-                        <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg border ${elData.bg} ${elData.border}`}>
-                          {elData.imageUrl ? (
-                            <img
-                              src={elData.imageUrl}
-                              alt={elData.name}
-                              className="w-3.5 h-3.5 object-contain"
-                              onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                            />
-                          ) : (
-                            <Disc className={`w-3 h-3 ${elData.text}`} />
-                          )}
-                          <span className={`text-[10px] font-bold ${elData.text}`}>
-                            {elData.name}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Admin Controls */}
-                      <td className="py-2 px-3 text-right">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            onClick={() => setViewingSong(song)}
-                            className="p-1 rounded text-zinc-400 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer"
-                            title="View song details & 3 covers"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => handleOpenCoverModal(song)}
-                            className="p-1 rounded text-zinc-400 hover:text-cyan-300 hover:bg-cyan-500/10 cursor-pointer"
-                            title="Change Cover Art URL"
-                          >
-                            <ImageIcon className="w-3.5 h-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => handleOpenEdit(song)}
-                            className="p-1 rounded text-zinc-400 hover:text-amber-300 hover:bg-amber-500/10 cursor-pointer"
-                            title="Edit song details & difficulties"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-
-                          {deleteConfirmId === song.id ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => handleDeleteSong(song.id)}
-                                className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white rounded text-[10px] font-bold cursor-pointer"
-                              >
-                                Delete
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirmId(null)}
-                                className="p-0.5 text-zinc-400 hover:text-white text-[10px] cursor-pointer"
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setDeleteConfirmId(song.id)}
-                              className="p-1 rounded text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                              title="Delete song"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Bar */}
-        <div className="px-4 py-3 bg-[#10141E] border-t border-zinc-800 flex items-center justify-between text-xs">
-          <span className="text-zinc-400">
-            Showing {(currentPage - 1) * pageSize + 1} to {Math.min(currentPage * pageSize, filteredSongs.length)} of {filteredSongs.length} songs
-          </span>
-
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage <= 1}
-              className="p-1 rounded border border-zinc-800 text-zinc-400 hover:text-white disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronLeft className="w-3.5 h-3.5" />
-            </button>
-            <span className="px-2 font-mono text-zinc-300">{currentPage} / {totalPages}</span>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage >= totalPages}
-              className="p-1 rounded border border-zinc-800 text-zinc-400 hover:text-white disabled:opacity-40 cursor-pointer"
-            >
-              <ChevronRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* ----------------- MODAL: EDIT SONG (3 COVERS & 3 DIFFICULTIES & 25 ELEMENTS) ----------------- */}
-      {(editingSong || isAddModalOpen) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85">
-          <div 
-            className="w-full max-w-2xl bg-[#0F131C] border border-cyan-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
-            onClick={e => e.stopPropagation()}
+        {/* Element Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+          <button
+            onClick={() => setSelectedElement('all')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition shrink-0 cursor-pointer ${
+              selectedElement === 'all'
+                ? 'bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm'
+                : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border-zinc-800/80'
+            }`}
           >
-            <div className="px-5 py-3.5 bg-[#141A26] border-b border-zinc-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-bold text-white">
-                  {editingSong ? `Edit Song: ${editingSong.title}` : 'Add New Song to Database'}
-                </h3>
-              </div>
-              <button 
-                onClick={() => { setEditingSong(null); setIsAddModalOpen(false); }}
-                className="p-1 text-zinc-400 hover:text-white cursor-pointer"
+            All Elements
+          </button>
+          {elements.map((el) => (
+            <button
+              key={el.name}
+              onClick={() => setSelectedElement(el.name)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                selectedElement.toLowerCase() === el.name.toLowerCase()
+                  ? 'bg-zinc-800 text-zinc-100 border-zinc-500 shadow-sm'
+                  : 'bg-zinc-900 text-zinc-400 hover:text-zinc-200 border-zinc-800/80'
+              }`}
+            >
+              <span
+                className="w-2 h-2 rounded-full"
+                style={{ backgroundColor: el.hexColor || el.color || '#94A3B8' }}
+              />
+              {el.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Songs Grid */}
+      {loading ? (
+        <div className="p-12 text-center text-xs text-zinc-500">Loading songs...</div>
+      ) : filteredSongs.length === 0 ? (
+        <div className="p-12 text-center text-xs text-zinc-500 bg-zinc-900/40 rounded-xl border border-zinc-800/80">
+          No songs found matching your search.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredSongs.map((song) => {
+            const diff = typeof song.difficulty === 'object' ? song.difficulty : {};
+            const hasEasy = hasDifficulty(diff.easy);
+            const hasNormal = hasDifficulty(diff.normal);
+            const hasHard = hasDifficulty(diff.hard);
+
+            let curDiff = cardDiffView[song.id] || (hasNormal ? 'normal' : hasHard ? 'hard' : hasEasy ? 'easy' : 'normal');
+            if (curDiff === 'easy' && !hasEasy) {
+              curDiff = hasNormal ? 'normal' : hasHard ? 'hard' : 'normal';
+            }
+            if (curDiff === 'hard' && !hasHard) {
+              curDiff = hasNormal ? 'normal' : hasEasy ? 'easy' : 'normal';
+            }
+
+            const singleCover = song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || '';
+
+            return (
+              <div
+                key={song.id}
+                className="p-4 bg-zinc-900/90 rounded-2xl border border-zinc-800/80 hover:border-cyan-500/40 transition space-y-3 relative group"
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+                <div className="flex items-start gap-3">
+                  {/* Framed Cover Art Preview */}
+                  <FramedSongCover
+                    coverArt={singleCover}
+                    difficulty={curDiff}
+                    frames={frames}
+                    song={song}
+                    hasEasyDifficulty={hasEasy}
+                    className="w-16 h-16 rounded-xl shadow-md shrink-0 cursor-pointer"
+                    showDifficultyBadge
+                    onClick={() => setSelectedSongDetail(song)}
+                    title="Click to view details and difficulty frames"
+                  />
 
-            <form onSubmit={editingSong ? handleSaveEdit : handleSaveAdd} className="p-5 overflow-y-auto space-y-4 text-xs">
-              {/* Basic Meta */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-zinc-300 font-semibold mb-1">Song Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formTitle}
-                    onChange={e => setFormTitle(e.target.value)}
-                    placeholder="Monday Night Monsters"
-                    className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-                  />
+                  <div className="flex-1 min-w-0">
+                    <h3 
+                      onClick={() => setSelectedSongDetail(song)}
+                      className="text-sm font-bold text-zinc-100 truncate cursor-pointer hover:text-cyan-400 transition-colors"
+                      title={song.title}
+                    >
+                      {song.title}
+                    </h3>
+                    <p className="text-xs text-zinc-400 truncate">{song.artist}</p>
+                    {song.mapper && (
+                      <p className="text-[11px] text-zinc-500 truncate mt-0.5">
+                        <span className="text-zinc-600">Map:</span> {song.mapper}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-zinc-300 font-semibold mb-1">Artist *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formArtist}
-                    onChange={e => setFormArtist(e.target.value)}
-                    placeholder="FinnMK"
-                    className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-zinc-300 font-semibold mb-1">Mapper(s)</label>
-                  <input
-                    type="text"
-                    value={formMapper}
-                    onChange={e => setFormMapper(e.target.value)}
-                    placeholder="Official RoBeats or Mapper Name"
-                    className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-                  />
+                {/* Difficulty Frame View Switcher Pills */}
+                <div className="flex items-center justify-between gap-1 pt-1 border-t border-zinc-800/60">
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-zinc-500 font-semibold mr-0.5">Frame:</span>
+                    {hasEasy && (
+                      <button
+                        type="button"
+                        onClick={() => setCardDiffView(prev => ({ ...prev, [song.id]: 'easy' }))}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono cursor-pointer transition ${
+                          curDiff === 'easy'
+                            ? 'bg-emerald-500 text-black font-bold shadow-sm'
+                            : 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60'
+                        }`}
+                        title="View Easy Frame Overlay"
+                      >
+                        EZ {diff.easy}
+                      </button>
+                    )}
+                    {hasNormal && (
+                      <button
+                        type="button"
+                        onClick={() => setCardDiffView(prev => ({ ...prev, [song.id]: 'normal' }))}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono cursor-pointer transition ${
+                          curDiff === 'normal'
+                            ? 'bg-blue-500 text-white font-bold shadow-sm'
+                            : 'bg-blue-950/60 text-blue-300 hover:bg-blue-900/60'
+                        }`}
+                        title="View Normal (Nothing Frame)"
+                      >
+                        NM {diff.normal}
+                      </button>
+                    )}
+                    {hasHard && (
+                      <button
+                        type="button"
+                        onClick={() => setCardDiffView(prev => ({ ...prev, [song.id]: 'hard' }))}
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono cursor-pointer transition ${
+                          curDiff === 'hard'
+                            ? 'bg-rose-500 text-white font-bold shadow-sm'
+                            : 'bg-rose-950/60 text-rose-300 hover:bg-rose-900/60'
+                        }`}
+                        title="View Hard Frame Overlay"
+                      >
+                        HD {diff.hard}
+                      </button>
+                    )}
+                    {!hasEasy && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800/80 text-zinc-500 font-mono" title="No Easy difficulty for this song (-)">
+                        No EZ (-)
+                      </span>
+                    )}
+                  </div>
+
+                  {song.element && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700/50">
+                      {song.element}
+                    </span>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-zinc-300 font-semibold mb-1">Cover Art URL</label>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-zinc-950 border border-zinc-800 shrink-0 overflow-hidden flex items-center justify-center">
-                      {formCoverArt.trim() ? (
-                        <img 
-                          src={formCoverArt.trim()} 
-                          alt="Cover preview" 
-                          className="w-full h-full object-cover" 
-                          onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                        />
-                      ) : (
-                        <ImageIcon className="w-4 h-4 text-zinc-600" />
+
+                {/* Bottom Controls */}
+                <div className="flex items-center justify-between pt-1">
+                  <button
+                    onClick={() => setSelectedSongDetail(song)}
+                    className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-medium cursor-pointer"
+                  >
+                    <Eye className="w-3 h-3" />
+                    <span>View & Edit Details</span>
+                  </button>
+
+                  {/* Admin controls */}
+                  {isStaff && (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          setEditingSong(song);
+                          setModalPreviewDiff('normal');
+                          setShowModal(true);
+                        }}
+                        className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer"
+                        title="Edit song metadata"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleDelete(song.id)}
+                          className="p-1.5 rounded hover:bg-rose-950/50 text-zinc-400 hover:text-rose-400 cursor-pointer"
+                          title="Delete song"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       )}
                     </div>
-                    <input
-                      type="url"
-                      value={formCoverArt}
-                      onChange={e => setFormCoverArt(e.target.value)}
-                      placeholder="https://... cover image URL"
-                      className="flex-1 px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-cyan-500"
-                    />
-                  </div>
+                  )}
                 </div>
               </div>
-
-              {/* Element Selector (Only elements name without color description) */}
-              <div>
-                <label className="block text-zinc-300 font-semibold mb-1">Song Element Type</label>
-                <div className="flex items-center gap-2 mb-2">
-                  {(() => {
-                    const elData = getElementData(formElement, elements);
-                    return (
-                      <div className={`px-2.5 py-1 rounded-lg border flex items-center gap-2 ${elData.bg} ${elData.border}`}>
-                        {elData.imageUrl && (
-                          <img src={elData.imageUrl} alt={elData.name} className="w-4 h-4 object-contain" />
-                        )}
-                        <span className={`font-bold ${elData.text}`}>
-                          {elData.name}
-                        </span>
-                      </div>
-                    );
-                  })()}
-                </div>
-                <select
-                  value={formElement}
-                  onChange={e => setFormElement(e.target.value)}
-                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-cyan-500 text-xs"
-                >
-                  <optgroup label="Single Elements (5)">
-                    <option value="Rush">Rush</option>
-                    <option value="Flow">Flow</option>
-                    <option value="Beat">Beat</option>
-                    <option value="Vibe">Vibe</option>
-                    <option value="Chill">Chill</option>
-                  </optgroup>
-                  <optgroup label="Rush Combos (4)">
-                    <option value="Rush/Flow">Rush/Flow</option>
-                    <option value="Rush/Vibe">Rush/Vibe</option>
-                    <option value="Rush/Chill">Rush/Chill</option>
-                    <option value="Rush/Beat">Rush/Beat</option>
-                  </optgroup>
-                  <optgroup label="Flow Combos (4)">
-                    <option value="Flow/Rush">Flow/Rush</option>
-                    <option value="Flow/Vibe">Flow/Vibe</option>
-                    <option value="Flow/Chill">Flow/Chill</option>
-                    <option value="Flow/Beat">Flow/Beat</option>
-                  </optgroup>
-                  <optgroup label="Vibe Combos (4)">
-                    <option value="Vibe/Rush">Vibe/Rush</option>
-                    <option value="Vibe/Flow">Vibe/Flow</option>
-                    <option value="Vibe/Chill">Vibe/Chill</option>
-                    <option value="Vibe/Beat">Vibe/Beat</option>
-                  </optgroup>
-                  <optgroup label="Chill Combos (4)">
-                    <option value="Chill/Flow">Chill/Flow</option>
-                    <option value="Chill/Vibe">Chill/Vibe</option>
-                    <option value="Chill/Beat">Chill/Beat</option>
-                    <option value="Chill/Rush">Chill/Rush</option>
-                  </optgroup>
-                  <optgroup label="Beat Combos (4)">
-                    <option value="Beat/Vibe">Beat/Vibe</option>
-                    <option value="Beat/Rush">Beat/Rush</option>
-                    <option value="Beat/Chill">Beat/Chill</option>
-                    <option value="Beat/Flow">Beat/Flow</option>
-                  </optgroup>
-                </select>
-              </div>
-
-              {/* Song difficulties Section */}
-              <div className="pt-2 border-t border-zinc-800 space-y-3">
-                <span className="block text-xs font-bold text-cyan-400 uppercase tracking-wider">
-                  Song difficulties
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* 1. EASY */}
-                  <div className="p-3 bg-zinc-950 rounded-xl border border-emerald-500/30 space-y-2">
-                    <span className="font-bold text-emerald-400 uppercase tracking-wider text-[11px] block">
-                      Easy Level
-                    </span>
-                    <div>
-                      <label className="block text-zinc-400 text-[10px] mb-1">Easy Difficulty</label>
-                      <input
-                        type="text"
-                        value={formEasy}
-                        onChange={e => setFormEasy(e.target.value)}
-                        placeholder="1 or -"
-                        className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-emerald-300 font-mono font-bold text-xs focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 2. NORMAL */}
-                  <div className="p-3 bg-zinc-950 rounded-xl border border-blue-500/30 space-y-2">
-                    <span className="font-bold text-blue-400 uppercase tracking-wider text-[11px] block">
-                      Normal Level
-                    </span>
-                    <div>
-                      <label className="block text-zinc-400 text-[10px] mb-1">Normal Difficulty</label>
-                      <input
-                        type="text"
-                        value={formNormal}
-                        onChange={e => setFormNormal(e.target.value)}
-                        placeholder="8"
-                        className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-blue-300 font-mono font-bold text-xs focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* 3. HARD (Red Color) */}
-                  <div className="p-3 bg-zinc-950 rounded-xl border border-rose-500/30 space-y-2">
-                    <span className="font-bold text-rose-400 uppercase tracking-wider text-[11px] block">
-                      Hard Level
-                    </span>
-                    <div>
-                      <label className="block text-zinc-400 text-[10px] mb-1">Hard Difficulty</label>
-                      <input
-                        type="text"
-                        value={formHard}
-                        onChange={e => setFormHard(e.target.value)}
-                        placeholder="18"
-                        className="w-full px-2.5 py-1.5 bg-zinc-900 border border-zinc-800 rounded text-rose-300 font-mono font-bold text-xs focus:outline-none focus:border-rose-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="pt-3 border-t border-zinc-800 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setEditingSong(null); setIsAddModalOpen(false); }}
-                  className="px-4 py-2 rounded-xl text-zinc-400 hover:text-white cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs cursor-pointer shadow-md shadow-cyan-600/20"
-                >
-                  {editingSong ? 'Save Song Changes' : 'Create Song Entry'}
-                </button>
-              </div>
-            </form>
-          </div>
+            );
+          })}
         </div>
       )}
 
-      {/* ----------------- MODAL: QUICK CHANGE COVER ART (ADMIN) ----------------- */}
-      {coverModalSong && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85">
-          <div 
-            className="w-full max-w-md bg-[#0F131C] border border-cyan-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="px-5 py-3.5 bg-[#141A26] border-b border-zinc-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-sm font-bold text-white">
-                  Change Cover Art: {coverModalSong.title}
-                </h3>
-              </div>
-              <button 
-                onClick={() => setCoverModalSong(null)}
-                className="p-1 text-zinc-400 hover:text-white cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {/* Add / Edit Song Modal with Single Cover Art + 3 Difficulty Frame Previews */}
+      {showModal && editingSong && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-[#0E131E] border border-zinc-800 rounded-2xl w-full max-w-lg p-5 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base font-bold text-zinc-100 flex items-center gap-2">
+              <Music className="w-4 h-4 text-cyan-400" />
+              <span>{editingSong.id ? 'Edit Song Chart & Cover Art' : 'Add New Song Chart'}</span>
+            </h3>
 
-            <form onSubmit={handleSaveCoverModal} className="p-5 space-y-4 text-xs">
-              <div className="flex items-center gap-3 p-3 bg-zinc-950 rounded-xl border border-zinc-800">
-                <div className="w-16 h-16 rounded-lg bg-zinc-900 border border-zinc-700 overflow-hidden shrink-0 flex items-center justify-center">
-                  {coverModalUrl.trim() ? (
-                    <img 
-                      src={coverModalUrl.trim()} 
-                      alt="Cover Preview" 
-                      className="w-full h-full object-cover"
-                      onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                    />
-                  ) : (
-                    <ImageIcon className="w-6 h-6 text-zinc-600" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h4 className="font-bold text-white text-xs truncate">{coverModalSong.title}</h4>
-                  <p className="text-zinc-400 text-[11px] truncate">{coverModalSong.artist}</p>
-                  <p className="text-[10px] text-cyan-400 font-mono mt-1">Live URL Preview</p>
-                </div>
-              </div>
-
+            <form onSubmit={handleSave} className="space-y-4 text-xs">
               <div>
-                <label className="block text-zinc-300 font-semibold mb-1">
-                  New Cover Art URL *
-                </label>
+                <label className="text-zinc-400 block mb-1 font-medium">Song Title *</label>
                 <input
-                  type="url"
+                  type="text"
                   required
-                  value={coverModalUrl}
-                  onChange={e => setCoverModalUrl(e.target.value)}
-                  placeholder="https://... direct image URL (PNG/JPG)"
-                  className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white focus:outline-none focus:border-cyan-500 text-xs"
+                  value={editingSong.title || ''}
+                  onChange={(e) => setEditingSong({ ...editingSong, title: e.target.value })}
+                  className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 focus:outline-none focus:border-cyan-500"
+                  placeholder="e.g. Monday Night Monsters"
                 />
-                <p className="text-[10px] text-zinc-500 mt-1">
-                  Enter a direct image link. This will update the song's cover art across all difficulties and posts.
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-medium">Artist *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingSong.artist || ''}
+                    onChange={(e) => setEditingSong({ ...editingSong, artist: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 focus:outline-none focus:border-cyan-500"
+                    placeholder="e.g. FinnMK"
+                  />
+                </div>
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-medium">Mapper</label>
+                  <input
+                    type="text"
+                    value={editingSong.mapper || ''}
+                    onChange={(e) => setEditingSong({ ...editingSong, mapper: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 focus:outline-none focus:border-cyan-500"
+                    placeholder="Official RoBeats"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-medium">Element</label>
+                  <select
+                    value={editingSong.element || 'Flow'}
+                    onChange={(e) => setEditingSong({ ...editingSong, element: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 focus:outline-none focus:border-cyan-500"
+                  >
+                    {elements.map((el) => (
+                      <option key={el.name} value={el.name}>
+                        {el.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-medium">BPM</label>
+                  <input
+                    type="text"
+                    value={editingSong.bpm || ''}
+                    onChange={(e) => setEditingSong({ ...editingSong, bpm: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 focus:outline-none focus:border-cyan-500"
+                    placeholder="e.g. 175"
+                  />
+                </div>
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-medium">Duration</label>
+                  <input
+                    type="text"
+                    value={editingSong.duration || ''}
+                    onChange={(e) => setEditingSong({ ...editingSong, duration: e.target.value })}
+                    className="w-full px-3 py-2 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 focus:outline-none focus:border-cyan-500"
+                    placeholder="e.g. 2:14"
+                  />
+                </div>
+              </div>
+
+              {/* Difficulties */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-zinc-400 font-medium">Difficulty Ratings</label>
+                  <span className="text-[10px] text-zinc-500 font-mono">Mark "-" if song lacks difficulty</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <span className="text-[10px] text-emerald-400 block mb-1 font-bold">Easy Level ("-" if none)</span>
+                    <input
+                      type="text"
+                      value={(editingSong.difficulty as any)?.easy !== undefined ? (editingSong.difficulty as any)?.easy : ''}
+                      onChange={(e) =>
+                        setEditingSong({
+                          ...editingSong,
+                          difficulty: { ...(editingSong.difficulty as any), easy: e.target.value },
+                        })
+                      }
+                      className="w-full px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-center text-zinc-100 font-mono placeholder-zinc-600 focus:outline-none focus:border-emerald-500"
+                      placeholder="1 or -"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-blue-400 block mb-1 font-bold">Normal Level ("-" if none)</span>
+                    <input
+                      type="text"
+                      value={(editingSong.difficulty as any)?.normal !== undefined ? (editingSong.difficulty as any)?.normal : ''}
+                      onChange={(e) =>
+                        setEditingSong({
+                          ...editingSong,
+                          difficulty: { ...(editingSong.difficulty as any), normal: e.target.value },
+                        })
+                      }
+                      className="w-full px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-center text-zinc-100 font-mono placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                      placeholder="8 or -"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-rose-400 block mb-1 font-bold">Hard Level ("-" if none)</span>
+                    <input
+                      type="text"
+                      value={(editingSong.difficulty as any)?.hard !== undefined ? (editingSong.difficulty as any)?.hard : ''}
+                      onChange={(e) =>
+                        setEditingSong({
+                          ...editingSong,
+                          difficulty: { ...(editingSong.difficulty as any), hard: e.target.value },
+                        })
+                      }
+                      className="w-full px-2 py-1.5 bg-zinc-950 border border-zinc-800 rounded-lg text-center text-zinc-100 font-mono placeholder-zinc-600 focus:outline-none focus:border-rose-500"
+                      placeholder="16 or -"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-zinc-500 mt-1.5">
+                  Any song marked by admin with <code className="text-cyan-400 font-bold bg-zinc-900 px-1 py-0.5 rounded">-</code> does not have that difficulty. Songs without Easy difficulty will omit the Easy frame.
                 </p>
               </div>
 
-              <div className="pt-2 border-t border-zinc-800 flex justify-end gap-2">
+              {/* SINGLE COVER ART INPUT (PER SONG 1 COVER ART) */}
+              <div className="p-3.5 bg-zinc-950/80 rounded-xl border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
+                    <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Song Cover Art (1 Image Link)</span>
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    Per song 1 cover art
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-semibold text-zinc-300 block">
+                    Cover Art Image URL
+                  </label>
+                  <input
+                    type="url"
+                    value={editingSong.coverArt || editingSong.coverArtNormal || ''}
+                    onChange={(e) => setEditingSong({ 
+                      ...editingSong, 
+                      coverArt: e.target.value,
+                      coverArtNormal: e.target.value,
+                      coverArtEasy: e.target.value,
+                      coverArtHard: e.target.value,
+                    })}
+                    className="w-full px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-100 placeholder-zinc-600 text-xs focus:outline-none focus:border-cyan-500"
+                    placeholder="https://... direct image link for song cover"
+                  />
+                  <p className="text-[11px] text-zinc-500">
+                    The cover art will automatically be framed according to each difficulty level (Easy frame, Hard frame, Normal nothing frame).
+                  </p>
+                </div>
+
+                {/* Difficulty Frame Previews */}
+                {(() => {
+                  const editHasEasy = hasDifficulty((editingSong.difficulty as any)?.easy);
+                  const editHasNormal = hasDifficulty((editingSong.difficulty as any)?.normal);
+                  const editHasHard = hasDifficulty((editingSong.difficulty as any)?.hard);
+                  const editCount = (editHasEasy ? 1 : 0) + (editHasNormal ? 1 : 0) + (editHasHard ? 1 : 0);
+                  const editGridCols = editCount === 1 ? 'grid-cols-1 max-w-xs mx-auto' : editCount === 2 ? 'grid-cols-2' : 'grid-cols-3';
+
+                  return (
+                    <div className="pt-2 border-t border-zinc-800/80 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-cyan-400" />
+                          <span>Difficulty Frame Previews</span>
+                        </span>
+                        <span className="text-[10px] text-zinc-500">
+                          Live frame preview
+                        </span>
+                      </div>
+
+                      <div className={`grid ${editGridCols} gap-2`}>
+                        {/* Easy - Only shown if song has Easy difficulty */}
+                        {editHasEasy && (
+                          <div 
+                            onClick={() => setModalPreviewDiff('easy')}
+                            className={`p-2 rounded-xl border flex flex-col items-center gap-1.5 cursor-pointer transition ${
+                              modalPreviewDiff === 'easy' ? 'bg-emerald-950/40 border-emerald-500' : 'bg-zinc-900/50 border-zinc-800/80 hover:border-zinc-700'
+                            }`}
+                          >
+                            <FramedSongCover
+                              coverArt={editingSong.coverArt || editingSong.coverArtNormal || ''}
+                              difficulty="easy"
+                              frames={frames}
+                              hasEasyDifficulty={editHasEasy}
+                              className="w-14 h-14 rounded-lg shadow"
+                              showDifficultyBadge
+                            />
+                            <span className="text-[10px] font-bold text-emerald-400">Easy Frame</span>
+                          </div>
+                        )}
+
+                        {/* Normal */}
+                        {editHasNormal && (
+                          <div 
+                            onClick={() => setModalPreviewDiff('normal')}
+                            className={`p-2 rounded-xl border flex flex-col items-center gap-1.5 cursor-pointer transition ${
+                              modalPreviewDiff === 'normal' ? 'bg-blue-950/40 border-blue-500' : 'bg-zinc-900/50 border-zinc-800/80 hover:border-zinc-700'
+                            }`}
+                          >
+                            <FramedSongCover
+                              coverArt={editingSong.coverArt || editingSong.coverArtNormal || ''}
+                              difficulty="normal"
+                              frames={frames}
+                              className="w-14 h-14 rounded-lg shadow"
+                              showDifficultyBadge
+                            />
+                            <span className="text-[10px] font-bold text-blue-400">Nothing Frame</span>
+                          </div>
+                        )}
+
+                        {/* Hard */}
+                        {editHasHard && (
+                          <div 
+                            onClick={() => setModalPreviewDiff('hard')}
+                            className={`p-2 rounded-xl border flex flex-col items-center gap-1.5 cursor-pointer transition ${
+                              modalPreviewDiff === 'hard' ? 'bg-rose-950/40 border-rose-500' : 'bg-zinc-900/50 border-zinc-800/80 hover:border-zinc-700'
+                            }`}
+                          >
+                            <FramedSongCover
+                              coverArt={editingSong.coverArt || editingSong.coverArtNormal || ''}
+                              difficulty="hard"
+                              frames={frames}
+                              className="w-14 h-14 rounded-lg shadow"
+                              showDifficultyBadge
+                            />
+                            <span className="text-[10px] font-bold text-rose-400">Hard Frame</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {!editHasEasy && (
+                        <p className="text-[10px] text-zinc-500 italic text-center">
+                          Easy is marked "-" &rarr; Easy difficulty frame is excluded for this song.
+                        </p>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Form Buttons */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800">
                 <button
                   type="button"
-                  onClick={() => setCoverModalSong(null)}
-                  className="px-4 py-1.5 rounded-xl text-zinc-400 hover:text-white cursor-pointer"
+                  onClick={() => setShowModal(false)}
+                  className="px-3 py-1.5 rounded-lg border border-zinc-800 text-zinc-400 hover:text-zinc-200 cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingCoverModal}
-                  className="px-4 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shadow-md shadow-cyan-600/20"
+                  className="px-4 py-1.5 bg-cyan-500 hover:bg-cyan-400 text-black font-semibold rounded-lg shadow cursor-pointer"
                 >
-                  {isSavingCoverModal ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  <span>Save Cover Art</span>
+                  Save Song Chart
                 </button>
               </div>
             </form>
@@ -963,11 +625,14 @@ export const SongList: React.FC<SongListProps> = ({ onOpenAccount }) => {
       )}
 
       {/* Song Details Modal */}
-      {viewingSong && (
-        <SongDetailsModal 
-          song={viewingSong} 
-          onClose={() => setViewingSong(null)} 
-          onSongUpdated={(updated) => setSongs(prev => prev.map(s => s.id === updated.id ? updated : s))}
+      {selectedSongDetail && (
+        <SongDetailsModal
+          song={selectedSongDetail}
+          onClose={() => setSelectedSongDetail(null)}
+          onSongUpdated={(updated) => {
+            setSelectedSongDetail(updated);
+            loadData();
+          }}
         />
       )}
     </div>

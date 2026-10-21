@@ -1,14 +1,15 @@
-import { SongEntry, ElementConfig, RankConfig } from '../types';
+import { SongEntry, ElementConfig, RankConfig, DifficultyFramesConfig, DEFAULT_DIFFICULTY_FRAMES } from '../types';
 import { buildDefaultElements } from '../constants/elements';
 
 // In-memory cache for fast local access
 let cachedSongs: SongEntry[] | null = null;
 let cachedElements: ElementConfig[] | null = null;
 let cachedRanks: RankConfig[] | null = null;
+let cachedFrames: DifficultyFramesConfig | null = null;
 
 function getAuthToken(): string | null {
   try {
-    return localStorage.getItem('robeats_auth_token');
+    return localStorage.getItem('robeats_token') || localStorage.getItem('robeats_auth_token');
   } catch {
     return null;
   }
@@ -460,6 +461,50 @@ export async function updateAllRanks(ranks: RankConfig[]): Promise<RankConfig[]>
   const finalRanks: RankConfig[] = Array.isArray(result) ? result : (result.ranks || ranks);
   cachedRanks = finalRanks;
   return finalRanks;
+}
+
+/**
+ * Fetch difficulty cover art frames (easy, normal, hard)
+ */
+export async function fetchDifficultyFrames(forceRefresh: boolean = false): Promise<DifficultyFramesConfig> {
+  if (!forceRefresh && cachedFrames) {
+    return cachedFrames;
+  }
+  try {
+    const res = await fetch('/api/frames');
+    if (!res.ok) throw new Error('Failed to fetch difficulty frames');
+    const data = await res.json();
+    cachedFrames = data;
+    return data;
+  } catch (err) {
+    console.error('Failed to load frames:', err);
+    return DEFAULT_DIFFICULTY_FRAMES;
+  }
+}
+
+/**
+ * Update difficulty cover art frames (Admin only)
+ */
+export async function updateDifficultyFrames(frames: DifficultyFramesConfig): Promise<DifficultyFramesConfig> {
+  const token = getAuthToken();
+  const res = await fetch('/api/admin/frames', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(frames),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to update difficulty frames');
+  }
+
+  const result = await res.json();
+  const finalFrames: DifficultyFramesConfig = result.frames || frames;
+  cachedFrames = finalFrames;
+  return finalFrames;
 }
 
 export const DEFAULT_SEED_SONGS: SongEntry[] = [

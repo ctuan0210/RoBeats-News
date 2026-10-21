@@ -271,7 +271,7 @@ export const FullStoryModal: React.FC<FullStoryModalProps> = ({
                 <span className="font-medium text-zinc-300">Tags:</span>
                 {article.tags.map((tag, i) => (
                   <span key={i} className="text-cyan-400/80 hover:text-cyan-300 transition-colors">
-                    #{tag}{i < article.tags.length - 1 ? ' ·' : ''}
+                    #{tag}{i < (article.tags?.length ?? 0) - 1 ? ' ·' : ''}
                   </span>
                 ))}
               </div>

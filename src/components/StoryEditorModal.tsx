@@ -59,7 +59,7 @@ export const StoryEditorModal: React.FC<StoryEditorModalProps> = ({
   const [isBreaking, setIsBreaking] = useState(article?.isBreaking || false);
   const [isFeatured, setIsFeatured] = useState(article?.isFeatured || false);
   const [isTrending, setIsTrending] = useState(article?.isTrending || false);
-  const [status, setStatus] = useState<'published' | 'draft'>(article?.status || 'published');
+  const [status, setStatus] = useState<'published' | 'draft'>(article?.status === 'draft' ? 'draft' : 'published');
   const [tags, setTags] = useState(article?.tags?.join(', ') || '');
 
   // Image Generation Studio State (Feature 1: gemini-3-pro-image-preview with 1K, 2K, 4K)
@@ -93,7 +93,7 @@ export const StoryEditorModal: React.FC<StoryEditorModalProps> = ({
       setIsBreaking(article.isBreaking || false);
       setIsFeatured(article.isFeatured || false);
       setIsTrending(article.isTrending || false);
-      setStatus(article.status || 'published');
+      setStatus(article.status === 'draft' ? 'draft' : 'published');
       setTags(article.tags?.join(', ') || '');
     }
   }, [article]);

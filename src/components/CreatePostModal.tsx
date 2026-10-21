@@ -24,12 +24,16 @@ import {
   Zap,
   Award,
   Activity,
-  Trophy
+  Trophy,
+  Copy,
+  Image as ImageIcon
 } from 'lucide-react';
-import { NewsArticle, SongEntry, ElementConfig, RankConfig, RoBeatsRank } from '../types';
+import { NewsArticle, SongEntry, ElementConfig, RankConfig, RoBeatsRank, hasDifficulty } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { fetchSongList, fetchElementsList, fetchRanksList } from '../services/fandomService';
 import { getElementData } from '../constants/elements';
+import { SongDetailsModal } from './SongDetailsModal';
+import { FramedSongCover } from './FramedSongCover';
 
 export type PostCategoryType = 'Daily mission' | 'Weekly mission' | 'Weekly Leaderboard' | 'New song' | 'Updates';
 
@@ -43,6 +47,9 @@ export interface NewSongDraft {
   hardLevel: string;
   featuredDifficulty: 'E' | 'N' | 'H';
   coverArt: string;
+  coverArtEasy?: string;
+  coverArtNormal?: string;
+  coverArtHard?: string;
   element: string;
 }
 
@@ -84,6 +91,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       hardLevel: '10',
       featuredDifficulty: 'N',
       coverArt: '',
+      coverArtEasy: '',
+      coverArtNormal: '',
+      coverArtHard: '',
       element: 'Flow',
     }
   ]);
@@ -97,6 +107,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
   const [isLoadingSongs, setIsLoadingSongs] = useState(false);
   const [showSongPicker, setShowSongPicker] = useState(false);
   const [songSearchQuery, setSongSearchQuery] = useState('');
+  const [selectedSongDetail, setSelectedSongDetail] = useState<SongEntry | null>(null);
   
   // Submit state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -164,7 +175,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       s.title.toLowerCase().includes(q) ||
       s.artist.toLowerCase().includes(q) ||
       (s.mapper && s.mapper.toLowerCase().includes(q)) ||
-      s.element.toLowerCase().includes(q)
+      (s.element && s.element.toLowerCase().includes(q))
     ).slice(0, 50);
   }, [allAvailableSongs, songSearchQuery]);
 
@@ -183,6 +194,9 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         hardLevel: '10',
         featuredDifficulty: 'N',
         coverArt: '',
+        coverArtEasy: '',
+        coverArtNormal: '',
+        coverArtHard: '',
         element: defaultEl,
       }
     ]);
@@ -405,22 +419,25 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       if (category === 'New song') {
         finalSongs = newSongDrafts.map((s, idx) => {
           const diffTier = s.featuredDifficulty || 'N';
-          // Will not add a random picture when there are no URL links when creating a new post
-          const cover = s.coverArt.trim() || '';
+          const easyCover = (s.coverArtEasy || s.coverArt || '').trim();
+          const normalCover = (s.coverArtNormal || s.coverArt || '').trim();
+          const hardCover = (s.coverArtHard || s.coverArt || '').trim();
+          const primaryCover = normalCover || easyCover || hardCover;
+
           return {
             id: `newsong_${Date.now()}_${idx}`,
             uniqueKey: s.id,
             title: s.title.trim(),
             artist: s.artist.trim(),
             mapper: s.mapper.trim() || 'Official RoBeats',
-            coverArt: cover,
-            coverArtEasy: cover,
-            coverArtNormal: cover,
-            coverArtHard: cover,
+            coverArt: primaryCover,
+            coverArtEasy: easyCover || primaryCover,
+            coverArtNormal: normalCover || primaryCover,
+            coverArtHard: hardCover || primaryCover,
             difficulty: {
-              easy: s.easyLevel.trim() || '1',
-              normal: s.normalLevel.trim() || '5',
-              hard: s.hardLevel.trim() || '10',
+              easy: s.easyLevel.trim() || '-',
+              normal: s.normalLevel.trim() || '-',
+              hard: s.hardLevel.trim() || '-',
             },
             chosenDifficulty: diffTier,
             element: s.element || 'Flow',
@@ -437,7 +454,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             : (category === 'Daily mission' ? s.missionRank : undefined),
           noMisses: category === 'Daily mission' ? (Boolean(s.noMisses || s.isNoMisses) || undefined) : undefined,
           isNoMisses: category === 'Daily mission' ? (Boolean(s.noMisses || s.isNoMisses) || undefined) : undefined,
-          requiredScore: category === 'Weekly mission' ? (s.requiredScore?.trim() || undefined) : undefined,
+          requiredScore: category === 'Weekly mission' ? (String(s.requiredScore ?? '').trim() || undefined) : undefined,
         }));
         finalCover = coverImageUrl.trim() || selectedSongs[0]?.coverArt || undefined;
       }
@@ -897,36 +914,43 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         <div className="grid grid-cols-3 gap-2.5">
                           {/* Easy Level */}
                           <div className="p-2 bg-zinc-900/90 border border-emerald-500/30 rounded-xl space-y-1">
-                            <span className="text-[10px] font-bold text-emerald-400 block uppercase">Easy Level</span>
+                            <span className="text-[10px] font-bold text-emerald-400 block uppercase">Easy ("-" if none)</span>
                             <input
                               type="text"
                               value={draft.easyLevel}
-                              onChange={e => handleUpdateNewSongDraft(draft.id, { easyLevel: e.target.value })}
-                              placeholder="1"
+                              onChange={e => {
+                                const val = e.target.value;
+                                const updates: Partial<NewSongDraft> = { easyLevel: val };
+                                if (!hasDifficulty(val) && draft.featuredDifficulty === 'E') {
+                                  updates.featuredDifficulty = 'N';
+                                }
+                                handleUpdateNewSongDraft(draft.id, updates);
+                              }}
+                              placeholder="1 or -"
                               className="w-full px-2 py-1 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-emerald-300 font-mono font-bold focus:outline-none focus:border-emerald-500"
                             />
                           </div>
 
                           {/* Normal Level */}
                           <div className="p-2 bg-zinc-900/90 border border-blue-500/30 rounded-xl space-y-1">
-                            <span className="text-[10px] font-bold text-blue-400 block uppercase">Normal Level</span>
+                            <span className="text-[10px] font-bold text-blue-400 block uppercase">Normal ("-" if none)</span>
                             <input
                               type="text"
                               value={draft.normalLevel}
                               onChange={e => handleUpdateNewSongDraft(draft.id, { normalLevel: e.target.value })}
-                              placeholder="5"
+                              placeholder="5 or -"
                               className="w-full px-2 py-1 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-blue-300 font-mono font-bold focus:outline-none focus:border-blue-500"
                             />
                           </div>
 
                           {/* Hard Level - Red globally */}
                           <div className="p-2 bg-zinc-900/90 border border-red-500/30 rounded-xl space-y-1">
-                            <span className="text-[10px] font-bold text-red-400 block uppercase">Hard Level</span>
+                            <span className="text-[10px] font-bold text-red-400 block uppercase">Hard ("-" if none)</span>
                             <input
                               type="text"
                               value={draft.hardLevel}
                               onChange={e => handleUpdateNewSongDraft(draft.id, { hardLevel: e.target.value })}
-                              placeholder="10"
+                              placeholder="10 or -"
                               className="w-full px-2 py-1 text-xs bg-zinc-950 border border-zinc-800 rounded-lg text-red-300 font-mono font-bold focus:outline-none focus:border-red-500"
                             />
                           </div>
@@ -935,53 +959,120 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         {/* Featured Difficulty in Feed */}
                         <div className="mt-2 flex items-center gap-2">
                           <span className="text-[10px] text-zinc-400 font-medium">Spotlight in Feed:</span>
-                          {(['E', 'N', 'H'] as const).map(diff => (
-                            <button
-                              key={diff}
-                              type="button"
-                              onClick={() => handleUpdateNewSongDraft(draft.id, { featuredDifficulty: diff })}
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
-                                draft.featuredDifficulty === diff
-                                  ? diff === 'E'
-                                    ? 'bg-emerald-500 text-zinc-950'
-                                    : diff === 'H'
-                                    ? 'bg-red-500 text-white'
-                                    : 'bg-blue-500 text-white'
-                                  : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
-                              }`}
-                            >
-                              {diff === 'E' ? 'Easy' : diff === 'H' ? 'Hard' : 'Normal'}
-                            </button>
-                          ))}
+                          {(['E', 'N', 'H'] as const).map(diff => {
+                            const isAvailable = diff === 'E' ? hasDifficulty(draft.easyLevel) : diff === 'H' ? hasDifficulty(draft.hardLevel) : hasDifficulty(draft.normalLevel);
+                            if (!isAvailable) return null;
+
+                            return (
+                              <button
+                                key={diff}
+                                type="button"
+                                onClick={() => handleUpdateNewSongDraft(draft.id, { featuredDifficulty: diff })}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-all ${
+                                  draft.featuredDifficulty === diff
+                                    ? diff === 'E'
+                                      ? 'bg-emerald-500 text-zinc-950'
+                                      : diff === 'H'
+                                      ? 'bg-red-500 text-white'
+                                      : 'bg-blue-500 text-white'
+                                    : 'bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800'
+                                }`}
+                              >
+                                {diff === 'E' ? 'Easy' : diff === 'H' ? 'Hard' : 'Normal'}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
-                      {/* Song Cover Art: Using URL Image */}
-                      <div>
-                        <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                          Song Cover Art: URL Image
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-lg bg-zinc-950 border border-zinc-800 shrink-0 overflow-hidden flex items-center justify-center">
-                            {draft.coverArt.trim() ? (
-                              <img
-                                src={draft.coverArt.trim()}
-                                alt="Preview"
-                                className="w-full h-full object-cover"
-                                onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
-                              />
-                            ) : (
-                              <Music className="w-4 h-4 text-zinc-600" />
-                            )}
-                          </div>
+                      {/* Song Cover Art (1 Image Link) & Difficulty Frame Overlays */}
+                      <div className="p-3 bg-zinc-950/80 rounded-xl border border-zinc-800/80 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold text-zinc-200 flex items-center gap-1.5">
+                            <ImageIcon className="w-3 h-3 text-cyan-400" />
+                            <span>Song Cover Art (1 Image Link)</span>
+                          </label>
+                          <span className="text-[9px] font-mono text-zinc-500">
+                            Per song 1 cover art
+                          </span>
+                        </div>
+
+                        <div>
                           <input
                             type="text"
-                            value={draft.coverArt}
-                            onChange={e => handleUpdateNewSongDraft(draft.id, { coverArt: e.target.value })}
-                            placeholder="https://... image URL for song cover"
-                            className="flex-1 px-3 py-2 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500"
+                            value={draft.coverArt || draft.coverArtNormal || ''}
+                            onChange={e => handleUpdateNewSongDraft(draft.id, { 
+                              coverArt: e.target.value,
+                              coverArtNormal: e.target.value,
+                              coverArtEasy: e.target.value,
+                              coverArtHard: e.target.value,
+                            })}
+                            placeholder="https://... cover art direct image link"
+                            className="w-full px-2.5 py-1.5 text-xs bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500"
                           />
+                          <p className="text-[10px] text-zinc-500 mt-1">
+                            Difficulty frames (Easy frame, Hard frame, Normal nothing frame) are applied over this cover art.
+                          </p>
                         </div>
+
+                        {/* Difficulty Frame Previews */}
+                        {(() => {
+                          const draftHasEasy = hasDifficulty(draft.easyLevel);
+                          const draftHasNormal = hasDifficulty(draft.normalLevel);
+                          const draftHasHard = hasDifficulty(draft.hardLevel);
+                          const draftCount = (draftHasEasy ? 1 : 0) + (draftHasNormal ? 1 : 0) + (draftHasHard ? 1 : 0);
+                          const draftCols = draftCount === 1 ? 'grid-cols-1 max-w-xs mx-auto' : draftCount === 2 ? 'grid-cols-2' : 'grid-cols-3';
+
+                          return (
+                            <div className="pt-2 border-t border-zinc-800/70 space-y-1.5">
+                              <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider block">
+                                Difficulty Frame Previews
+                              </span>
+                              <div className={`grid ${draftCols} gap-2`}>
+                                {/* Easy - only shown if draft has Easy difficulty */}
+                                {draftHasEasy && (
+                                  <div className="p-1.5 bg-zinc-900/60 rounded-lg border border-zinc-800 flex flex-col items-center gap-1">
+                                    <FramedSongCover
+                                      coverArt={draft.coverArt || draft.coverArtNormal || ''}
+                                      difficulty="easy"
+                                      hasEasyDifficulty={draftHasEasy}
+                                      className="w-12 h-12 rounded shadow"
+                                      showDifficultyBadge
+                                    />
+                                    <span className="text-[9px] font-semibold text-emerald-400">Easy Frame</span>
+                                  </div>
+                                )}
+                                {draftHasNormal && (
+                                  <div className="p-1.5 bg-zinc-900/60 rounded-lg border border-zinc-800 flex flex-col items-center gap-1">
+                                    <FramedSongCover
+                                      coverArt={draft.coverArt || draft.coverArtNormal || ''}
+                                      difficulty="normal"
+                                      className="w-12 h-12 rounded shadow"
+                                      showDifficultyBadge
+                                    />
+                                    <span className="text-[9px] font-semibold text-blue-400">Nothing Frame</span>
+                                  </div>
+                                )}
+                                {draftHasHard && (
+                                  <div className="p-1.5 bg-zinc-900/60 rounded-lg border border-zinc-800 flex flex-col items-center gap-1">
+                                    <FramedSongCover
+                                      coverArt={draft.coverArt || draft.coverArtNormal || ''}
+                                      difficulty="hard"
+                                      className="w-12 h-12 rounded shadow"
+                                      showDifficultyBadge
+                                    />
+                                    <span className="text-[9px] font-semibold text-rose-400">Hard Frame</span>
+                                  </div>
+                                )}
+                              </div>
+                              {!draftHasEasy && (
+                                <p className="text-[10px] text-zinc-500 italic">
+                                  Easy is marked "-" &rarr; Easy difficulty frame is excluded for this song.
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Elements: Manual choose from available added elements */}
@@ -1078,7 +1169,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   <div className="max-h-48 overflow-y-auto space-y-1 pr-1 scrollbar-thin">
                     {filteredPickerSongs.map(song => {
                       const addedCount = selectedSongs.filter(s => s.id === song.id).length;
-                      const elData = getElementData(song.element, elements);
+                      const elData = getElementData(song.element || '', elements);
                       const displayCover = song.coverArtNormal || song.coverArtEasy || song.coverArtHard || song.coverArt;
                       const isMax = (category === 'Weekly mission' && selectedSongs.length >= 2) || (category === 'Weekly Leaderboard' && selectedSongs.length >= 8);
 
@@ -1088,11 +1179,10 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                           className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-900/80 border border-transparent hover:border-zinc-800 text-zinc-300"
                         >
                           <div className="flex items-center gap-2.5 overflow-hidden">
-                            <img
-                              src={displayCover}
-                              alt={song.title}
-                              className="w-7 h-7 rounded object-cover border border-zinc-800 shrink-0"
-                              onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
+                            <FramedSongCover
+                              coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
+                              difficulty="normal"
+                              className="w-7 h-7 rounded shrink-0 shadow"
                             />
                             <div className="truncate">
                               <span className="text-xs font-semibold text-white block truncate">{song.title}</span>
@@ -1159,7 +1249,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {selectedSongs.map((song, idx) => {
-                  const elData = getElementData(song.element, elements);
+                  const elData = getElementData(song.element || '', elements);
                   const chosen = song.chosenDifficulty || 'N';
                   const songKey = song.uniqueKey || `${song.id}-${idx}`;
                   const displayCover = 
@@ -1183,18 +1273,23 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                           <span className="cursor-grab active:cursor-grabbing text-zinc-500 hover:text-zinc-300 p-0.5 shrink-0" title="Drag to reorder">
                             <GripVertical className="w-3.5 h-3.5" />
                           </span>
-                          <div className="relative shrink-0">
-                            <img
-                              src={displayCover}
-                              alt={song.title}
-                              className="w-10 h-10 rounded-lg object-cover border border-zinc-800"
-                            />
-                            <span className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-cyan-500 text-zinc-950 font-bold text-[9px] flex items-center justify-center">
+                          <FramedSongCover
+                            coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
+                            difficulty={chosen}
+                            className="w-10 h-10 rounded-lg shadow shrink-0"
+                            onClick={() => setSelectedSongDetail(song)}
+                            title="Click to view song details & difficulty frames"
+                          >
+                            <span className="absolute -top-1.5 -left-1.5 w-4 h-4 rounded-full bg-cyan-500 text-zinc-950 font-bold text-[9px] flex items-center justify-center z-20">
                               {idx + 1}
                             </span>
-                          </div>
-                          <div className="min-w-0">
-                            <h5 className="text-xs font-bold text-white truncate">{song.title}</h5>
+                          </FramedSongCover>
+                          <div 
+                            onClick={() => setSelectedSongDetail(song)}
+                            className="min-w-0 cursor-pointer"
+                            title="Click to view song details & difficulty frames"
+                          >
+                            <h5 className="text-xs font-bold text-white truncate hover:text-cyan-400 transition-colors">{song.title}</h5>
                             <p className="text-[11px] text-zinc-400 truncate">{song.artist}</p>
                           </div>
                         </div>
@@ -1406,6 +1501,18 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Song Details Modal for editing 3 covers */}
+      {selectedSongDetail && (
+        <SongDetailsModal
+          song={selectedSongDetail}
+          onClose={() => setSelectedSongDetail(null)}
+          onSongUpdated={(updated) => {
+            setSelectedSongDetail(updated);
+            setSelectedSongs(prev => prev.map(s => s.id === updated.id ? { ...s, ...updated } : s));
+          }}
+        />
+      )}
     </div>
   );
 };

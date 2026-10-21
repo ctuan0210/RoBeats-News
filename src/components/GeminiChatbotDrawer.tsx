@@ -200,10 +200,12 @@ export const GeminiChatbotDrawer: React.FC<GeminiChatbotDrawerProps> = ({
     }
   };
 
-  const handleCopy = (content: string, id: string) => {
+  const handleCopy = (content: string, id?: string) => {
     navigator.clipboard.writeText(content);
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    if (id) {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

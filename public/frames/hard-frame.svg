@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200" fill="none">
+  <!-- Outer Frame -->
+  <rect x="5" y="5" width="190" height="190" rx="14" stroke="#EF4444" stroke-width="8" />
+  <!-- Spiked Intense Corner Brackets -->
+  <path d="M5 46 L5 16 A11 11 0 0 1 16 5 L46 5 L34 17 L17 17 L17 34 Z" fill="#F43F5E" />
+  <path d="M195 46 L195 16 A11 11 0 0 0 184 5 L154 5 L166 17 L183 17 L183 34 Z" fill="#F43F5E" />
+  <path d="M5 154 L5 184 A11 11 0 0 0 16 195 L46 195 L34 183 L17 183 L17 166 Z" fill="#F43F5E" />
+  <path d="M195 154 L195 184 A11 11 0 0 1 184 195 L154 195 L166 183 L183 183 L183 166 Z" fill="#F43F5E" />
+  <!-- Inner Energetic Border -->
+  <rect x="17" y="17" width="166" height="166" rx="8" stroke="#F59E0B" stroke-width="2.5" stroke-dasharray="12 6" />
+  <!-- Hard Crest Flame Spikes Top Center -->
+  <path d="M84 5 L100 24 L116 5 Z" fill="#EF4444" />
+  <path d="M92 5 L100 17 L108 5 Z" fill="#FDE047" />
+  <!-- Bottom Center Energy Notch -->
+  <path d="M84 195 L100 176 L116 195 Z" fill="#EF4444" />
+  <path d="M92 195 L100 183 L108 195 Z" fill="#FDE047" />
+</svg>

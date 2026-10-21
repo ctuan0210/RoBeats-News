@@ -26,6 +26,7 @@ import {
   Check
 } from 'lucide-react';
 import { CountdownBadge } from './CountdownTimer';
+import { FramedSongCover } from './FramedSongCover';
 import { NewsArticle, SongEntry, ElementConfig, RankConfig, PostComment } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { fetchElementsList, fetchRanksList } from '../services/fandomService';
@@ -573,7 +574,7 @@ export const PostCard: React.FC<PostCardProps> = ({
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}
             >
               {songs.map((song, index) => {
-                const elData = getElementData(song.element, elements);
+                const elData = getElementData(song.element || '', elements);
                 const missionRankName = song.missionRank || post.missionRank;
                 const rankObj = missionRankName ? ranks.find(r => r.name.toLowerCase() === missionRankName.toLowerCase()) : null;
                 
@@ -605,29 +606,18 @@ export const PostCard: React.FC<PostCardProps> = ({
                     title={`"${song.title}" by "${song.artist}" - ${diffFullText} ${diffNumber}`}
                   >
                     <div>
-                      {/* Cover Art */}
-                      <div className="relative aspect-square w-full rounded-md overflow-hidden bg-zinc-950 border border-zinc-800 mb-1.5">
-                        {displayCover ? (
-                          <img
-                            src={displayCover}
-                            alt={song.title}
-                            className="w-full h-full object-cover group-hover/song:scale-105 transition-transform duration-300 ease-out"
-                            loading="lazy"
-                            onError={(e) => {
-                              (e.target as HTMLElement).style.display = 'none';
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-600">
-                            <Music className="w-6 h-6 opacity-40 mb-1" />
-                            <span className="text-[9px]">No Art</span>
-                          </div>
-                        )}
-
+                      {/* Cover Art with Difficulty Frame */}
+                      <FramedSongCover
+                        coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
+                        difficulty={diffLetter}
+                        className="w-full aspect-square rounded-md overflow-hidden bg-zinc-950 border border-zinc-800 mb-1.5"
+                        imageClassName="w-full h-full object-cover group-hover/song:scale-105 transition-transform duration-300 ease-out"
+                        showDifficultyBadge={false}
+                      >
                         {/* Top-Left Rank Icon on Cover Art (Daily & Weekly missions) */}
                         {(post.category === 'Daily mission' || post.category === 'Weekly mission') && missionRankName && (
                           <div 
-                            className="absolute top-1 left-1 p-1 rounded bg-zinc-950/85 border border-zinc-700/80 flex items-center justify-center leading-none shadow-md z-10"
+                            className="absolute top-1 left-1 p-1 rounded bg-zinc-950/85 border border-zinc-700/80 flex items-center justify-center leading-none shadow-md z-20"
                             title={`${missionRankName} Missions`}
                           >
                             {rankObj?.iconUrl ? (
@@ -646,7 +636,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                         {/* Linked Element Badge with Image and Color (ONLY icon image without text, +25% bigger) */}
                         {elData && (
                           <div 
-                            className={`absolute top-1 right-1 p-1.5 rounded-md flex items-center justify-center border leading-none shadow-md ${elData.bg} ${elData.border}`}
+                            className={`absolute top-1 right-1 p-1.5 rounded-md flex items-center justify-center border leading-none shadow-md z-20 ${elData.bg} ${elData.border}`}
                             title={elData.name}
                           >
                             {elData.imageUrl ? (
@@ -665,7 +655,7 @@ export const PostCard: React.FC<PostCardProps> = ({
                         {/* 'No misses' Tag on Cover Art ONLY if this chosen song is marked No misses */}
                         {Boolean(song.noMisses || song.isNoMisses) && (
                           <div 
-                            className="absolute bottom-1 left-1 right-1 px-1.5 py-0.5 rounded bg-rose-600/90 text-white font-black text-[9px] uppercase tracking-wider text-center shadow-md border border-rose-400/60 backdrop-blur-xs flex items-center justify-center gap-1 z-10"
+                            className="absolute bottom-1 left-1 right-1 px-1.5 py-0.5 rounded bg-rose-600/90 text-white font-black text-[9px] uppercase tracking-wider text-center shadow-md border border-rose-400/60 backdrop-blur-xs flex items-center justify-center gap-1 z-20"
                             title="Challenge: No misses"
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
@@ -676,14 +666,14 @@ export const PostCard: React.FC<PostCardProps> = ({
                         {/* 'Score required' Tag on Cover Art for Weekly mission */}
                         {Boolean(song.requiredScore) && (
                           <div 
-                            className="absolute bottom-1 left-1 right-1 px-1.5 py-0.5 rounded bg-amber-600/95 text-white font-black text-[9px] uppercase tracking-wider text-center shadow-md border border-amber-400/70 backdrop-blur-xs flex items-center justify-center gap-1 z-10"
+                            className="absolute bottom-1 left-1 right-1 px-1.5 py-0.5 rounded bg-amber-600/95 text-white font-black text-[9px] uppercase tracking-wider text-center shadow-md border border-amber-400/70 backdrop-blur-xs flex items-center justify-center gap-1 z-20"
                             title={`Score Required: ${song.requiredScore}`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
                             <span className="truncate">Score: {song.requiredScore}</span>
                           </div>
                         )}
-                      </div>
+                      </FramedSongCover>
 
                       {/* Song Name & Artist */}
                       <div className="space-y-0.5 mb-1.5">
@@ -803,12 +793,12 @@ export const PostCard: React.FC<PostCardProps> = ({
                           <img src={c.authorAvatar} alt={c.authorName} className="w-6 h-6 rounded-full object-cover shrink-0 border border-zinc-700" />
                         ) : (
                           <div className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 flex items-center justify-center text-[10px] font-bold shrink-0">
-                            {c.authorName.charAt(0).toUpperCase()}
+                            {(c.authorName || c.author?.username || 'A').charAt(0).toUpperCase()}
                           </div>
                         )}
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-zinc-200">{c.authorName}</span>
+                            <span className="font-bold text-zinc-200">{c.authorName || c.author?.username || 'Anonymous'}</span>
                             {c.authorRole === 'admin' && (
                               <span className="text-[8px] font-bold uppercase px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
                                 Admin
