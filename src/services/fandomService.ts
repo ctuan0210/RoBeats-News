@@ -1,4 +1,4 @@
-import { SongEntry, ElementConfig, RankConfig, DifficultyFramesConfig, DEFAULT_DIFFICULTY_FRAMES } from '../types';
+import { SongEntry, ElementConfig, RankConfig, DifficultyFramesConfig, DEFAULT_DIFFICULTY_FRAMES, User } from '../types';
 import { buildDefaultElements } from '../constants/elements';
 
 // In-memory cache for fast local access
@@ -535,3 +535,12 @@ export const DEFAULT_SEED_SONGS: SongEntry[] = [
     bpm: '106',
   }
 ];
+
+export async function fetchUserProfile(identifier: string): Promise<User> {
+  const res = await fetch(`/api/users/${encodeURIComponent(identifier)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'Failed to fetch user profile');
+  }
+  return res.json();
+}

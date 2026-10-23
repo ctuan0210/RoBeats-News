@@ -8,6 +8,8 @@ import { PostCard } from './components/PostCard';
 import { CreatePostModal } from './components/CreatePostModal';
 import { EditPostModal } from './components/EditPostModal';
 import { SongDetailsModal } from './components/SongDetailsModal';
+import { UserProfileModal } from './components/UserProfileModal';
+import { StreakModal } from './components/StreakModal';
 import { useAuth } from './context/AuthContext';
 import { 
   PlusCircle, 
@@ -35,6 +37,9 @@ export default function App() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [accountModalTab, setAccountModalTab] = useState<'login' | 'signup' | 'profile'>('login');
 
+  // Streak Modal State
+  const [isStreakModalOpen, setIsStreakModalOpen] = useState(false);
+
   // Admin Panel State
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
 
@@ -46,6 +51,9 @@ export default function App() {
 
   // Song Details Modal State
   const [selectedSongDetail, setSelectedSongDetail] = useState<SongEntry | null>(null);
+
+  // User Profile Modal State
+  const [viewingUserProfile, setViewingUserProfile] = useState<any>(null);
 
   // Check if current user is Staff or Admin
   const canUserPost = isAuthenticated && user && (
@@ -137,6 +145,7 @@ export default function App() {
         onOpenAccount={handleOpenAccount}
         onOpenAdminPanel={() => setIsAdminPanelOpen(true)}
         onOpenCreatePost={() => setIsCreatePostModalOpen(true)}
+        onOpenStreak={() => setIsStreakModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -235,6 +244,7 @@ export default function App() {
                   onEdit={(p) => setEditingPost(p)}
                   onSongClick={handleSongClick}
                   onOpenAccount={handleOpenAccount}
+                  onUserClick={(author) => setViewingUserProfile(author)}
                 />
               ))}
             </div>
@@ -281,6 +291,26 @@ export default function App() {
           onClose={() => setSelectedSongDetail(null)}
         />
       )}
+
+      {/* User Public Profile Modal */}
+      {viewingUserProfile && (
+        <UserProfileModal
+          user={viewingUserProfile}
+          isOpen={Boolean(viewingUserProfile)}
+          onClose={() => setViewingUserProfile(null)}
+          onEditOwnProfile={() => {
+            setViewingUserProfile(null);
+            handleOpenAccount('profile');
+          }}
+        />
+      )}
+
+      {/* Daily Streak & Avatar Frame Rewards Modal */}
+      <StreakModal
+        isOpen={isStreakModalOpen}
+        onClose={() => setIsStreakModalOpen(false)}
+        onOpenAccount={handleOpenAccount}
+      />
 
       {/* Modern Minimal Dark Footer */}
       <footer className="border-t border-zinc-900 bg-[#0B0E14] py-8 text-zinc-500 text-xs mt-auto">

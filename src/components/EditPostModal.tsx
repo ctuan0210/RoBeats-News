@@ -25,7 +25,7 @@ import {
   Trophy,
   Send
 } from 'lucide-react';
-import { NewsArticle, SongEntry, ElementConfig, RankConfig, RoBeatsRank } from '../types';
+import { NewsArticle, SongEntry, ElementConfig, RankConfig, RoBeatsRank, hasDifficulty } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { fetchSongList, fetchElementsList, fetchRanksList, publishNewsToDiscordWebhook } from '../services/fandomService';
 import { getElementData } from '../constants/elements';
@@ -190,7 +190,13 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
 
   const handleSetSongDifficulty = (uniqueKeyOrId: string, diff: 'E' | 'N' | 'H') => {
     setSelectedSongs(prev =>
-      prev.map(s => ((s.uniqueKey || s.id) === uniqueKeyOrId ? { ...s, chosenDifficulty: diff } : s))
+      prev.map(s => {
+        if ((s.uniqueKey || s.id) !== uniqueKeyOrId) return s;
+        if (diff === 'E' && !hasDifficulty(s.difficulty?.easy)) return s;
+        if (diff === 'H' && !hasDifficulty(s.difficulty?.hard)) return s;
+        if (diff === 'N' && !hasDifficulty(s.difficulty?.normal)) return s;
+        return { ...s, chosenDifficulty: diff };
+      })
     );
   };
 
@@ -634,6 +640,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
                             <FramedSongCover
                               coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
                               difficulty="normal"
+                              song={song}
                               className="w-7 h-7 rounded shrink-0 shadow"
                             />
                           <div className="truncate">
@@ -714,6 +721,7 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
                           <FramedSongCover
                             coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
                             difficulty={chosen}
+                            song={song}
                             className="w-10 h-10 rounded-lg shadow shrink-0"
                             onClick={() => setSelectedSongDetail(song)}
                             title="Click to view song details & difficulty frames"
@@ -762,6 +770,12 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
                           <span className="text-[10px] text-zinc-400 font-semibold">Featured Level:</span>
                           {(['E', 'N', 'H'] as const).map(diff => {
                             const isChosen = chosen === diff;
+                            const hasThisDiff = 
+                              diff === 'E' 
+                                ? hasDifficulty(song.difficulty?.easy) 
+                                : diff === 'N' 
+                                ? hasDifficulty(song.difficulty?.normal) 
+                                : hasDifficulty(song.difficulty?.hard);
                             const diffVal = 
                               diff === 'E' 
                                 ? song.difficulty?.easy 
@@ -773,16 +787,20 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
                               <button
                                 key={diff}
                                 type="button"
+                                disabled={!hasThisDiff}
                                 onClick={() => handleSetSongDifficulty(songKey, diff)}
-                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors ${
-                                  isChosen
+                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-colors ${
+                                  !hasThisDiff
+                                    ? 'bg-zinc-900/60 text-zinc-600 border border-zinc-850 cursor-not-allowed opacity-50'
+                                    : isChosen
                                     ? diff === 'E'
-                                      ? 'bg-emerald-500 text-zinc-950'
+                                      ? 'bg-emerald-500 text-zinc-950 cursor-pointer'
                                       : diff === 'N'
-                                      ? 'bg-blue-500 text-white'
-                                      : 'bg-red-500 text-white'
-                                    : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200'
+                                      ? 'bg-blue-500 text-white cursor-pointer'
+                                      : 'bg-red-500 text-white cursor-pointer'
+                                    : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 cursor-pointer'
                                 }`}
+                                title={!hasThisDiff ? `Song does not have ${diff === 'E' ? 'Easy' : diff === 'N' ? 'Normal' : 'Hard'} difficulty (-)` : undefined}
                               >
                                 {diff} {diffVal || '-'}
                               </button>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { User, Shield, PlusCircle, Clock, Music } from 'lucide-react';
+import { User, Shield, PlusCircle, Clock, Music, Flame } from 'lucide-react';
 import { NewsCategory } from '../types';
 import { useAuth } from '../context/AuthContext';
+import { UserAvatar } from './UserAvatar';
 
 interface HeaderProps {
   currentCategory: NewsCategory;
@@ -11,6 +12,7 @@ interface HeaderProps {
   onOpenAccount: (tab?: 'login' | 'signup' | 'profile') => void;
   onOpenAdminPanel?: () => void;
   onOpenCreatePost?: () => void;
+  onOpenStreak?: () => void;
 }
 
 const CATEGORIES: NewsCategory[] = [
@@ -61,6 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAccount,
   onOpenAdminPanel,
   onOpenCreatePost,
+  onOpenStreak,
 }) => {
   const { user, isAuthenticated } = useAuth();
 
@@ -166,6 +169,18 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             )}
 
+            {/* Daily Streak Check-in button */}
+            <button
+              onClick={onOpenStreak}
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl bg-orange-500/15 hover:bg-orange-500/25 text-orange-300 border border-orange-500/30 text-[11px] sm:text-xs font-bold transition-all cursor-pointer shadow-xs shadow-orange-500/10 shrink-0"
+              title="Daily Streak & Avatar Frame Rewards"
+            >
+              <Flame className="w-3.5 h-3.5 text-orange-400 animate-pulse" />
+              <span className="font-mono">
+                {user?.currentStreak ? `${user.currentStreak}d` : 'Streak'}
+              </span>
+            </button>
+
             {/* Merged Account Button: Same line with Date and Hello "user" */}
             {isAuthenticated && user ? (
               <button
@@ -173,10 +188,10 @@ export const Header: React.FC<HeaderProps> = ({
                 className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-xl bg-zinc-900/90 hover:bg-zinc-800/90 text-zinc-200 border border-zinc-800 hover:border-cyan-500/40 text-[11px] sm:text-xs transition-all cursor-pointer group shrink-0"
                 title="Account Profile"
               >
-                <img
+                <UserAvatar
                   src={user.avatar}
-                  alt={user.displayName}
-                  className="w-4 h-4 rounded-full object-cover border border-cyan-500/50 shrink-0"
+                  frameId={user.equippedAvatarFrame}
+                  size="xs"
                 />
                 <span className="font-semibold text-white group-hover:text-cyan-300 transition-colors truncate max-w-[80px] sm:max-w-none">
                   {user.displayName || user.username}

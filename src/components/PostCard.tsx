@@ -10,27 +10,32 @@ import {
   Crown, 
   X,
   Disc,
-  MessageSquare,
-  ChevronDown,
-  Send,
-  User as UserIcon,
   Sparkles,
   Bell,
   Sun,
-  Lock,
   CornerDownRight,
   ExternalLink,
   Star,
   Trophy,
   Copy,
-  Check
+  Check,
+  Smile
 } from 'lucide-react';
 import { CountdownBadge } from './CountdownTimer';
 import { FramedSongCover } from './FramedSongCover';
-import { NewsArticle, SongEntry, ElementConfig, RankConfig, PostComment } from '../types';
+import { UserAvatar } from './UserAvatar';
+import { NewsArticle, SongEntry, ElementConfig, RankConfig, hasDifficulty } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { fetchElementsList, fetchRanksList } from '../services/fandomService';
 import { getElementData } from '../constants/elements';
+
+const REACTION_EMOJIS = [
+  { emoji: '🔥', label: 'Hype' },
+  { emoji: '👍', label: 'Like' },
+  { emoji: '🎵', label: 'Jam' },
+  { emoji: '💖', label: 'Love' },
+  { emoji: '⚡', label: 'GG' },
+];
 
 interface PostCardProps {
   post: NewsArticle;
@@ -39,6 +44,7 @@ interface PostCardProps {
   onEdit?: (post: NewsArticle) => void;
   onSongClick?: (song: SongEntry) => void;
   onOpenAccount?: (tab?: 'login' | 'signup') => void;
+  onUserClick?: (author: any) => void;
 }
 
 export const PostCard: React.FC<PostCardProps> = ({
@@ -48,8 +54,9 @@ export const PostCard: React.FC<PostCardProps> = ({
   onEdit,
   onSongClick,
   onOpenAccount,
+  onUserClick,
 }) => {
-  const { user, isAuthenticated, token } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -58,12 +65,59 @@ export const PostCard: React.FC<PostCardProps> = ({
   const [elements, setElements] = useState<ElementConfig[]>([]);
   const [ranks, setRanks] = useState<RankConfig[]>([]);
 
-  // Comments state
-  const [comments, setComments] = useState<PostComment[]>(post.comments || []);
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
-  const [commentContent, setCommentContent] = useState('');
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [commentError, setCommentError] = useState<string | null>(null);
+  // Post Reactions State
+  const [reactions, setReactions] = useState<Record<string, number>>(post.reactions || {});
+  const [userReactions, setUserReactions] = useState<string[]>(() => {
+    try {
+      const stored = localStorage.getItem(`robeats_post_reactions_${post.id}`);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
+
+  // Sync post reactions prop
+  useEffect(() => {
+    if (post.reactions) {
+      setReactions(post.reactions);
+    }
+  }, [post.reactions]);
+
+  const handleToggleReaction = async (emoji: string) => {
+    const hasReacted = userReactions.includes(emoji);
+    const nextUserReactions = hasReacted
+      ? userReactions.filter(e => e !== emoji)
+      : [...userReactions, emoji];
+
+    // Optimistic count update
+    const currentCount = reactions[emoji] || 0;
+    const nextReactions = {
+      ...reactions,
+      [emoji]: Math.max(0, currentCount + (hasReacted ? -1 : 1))
+    };
+    if (nextReactions[emoji] === 0) delete nextReactions[emoji];
+
+    setUserReactions(nextUserReactions);
+    setReactions(nextReactions);
+    try {
+      localStorage.setItem(`robeats_post_reactions_${post.id}`, JSON.stringify(nextUserReactions));
+    } catch {}
+
+    try {
+      const res = await fetch(`/api/news/${post.id}/reactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emoji }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.reactions) setReactions(data.reactions);
+      }
+    } catch (err) {
+      console.error('Failed to update reaction', err);
+    }
+  };
 
   useEffect(() => {
     fetchElementsList().then(setElements).catch(() => {});
@@ -71,13 +125,6 @@ export const PostCard: React.FC<PostCardProps> = ({
       if (Array.isArray(res)) setRanks(res);
     }).catch(() => {});
   }, []);
-
-  // Update comments if post.comments updates
-  useEffect(() => {
-    if (post.comments) {
-      setComments(post.comments);
-    }
-  }, [post.comments]);
 
   const songs: SongEntry[] = post.songs || [];
   const hasSongs = songs.length > 0;
@@ -122,61 +169,6 @@ export const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
-  // Submit comment handler (Strictly for registered users)
-  const handleCommentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentContent.trim()) return;
-    if (!isAuthenticated || !token) {
-      setCommentError('Please sign in with a registered account to post a comment.');
-      return;
-    }
-
-    setIsSubmittingComment(true);
-    setCommentError(null);
-
-    try {
-      const res = await fetch(`/api/news/${post.id}/comments`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          content: commentContent.trim(),
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to submit comment');
-      }
-
-      const newC = await res.json();
-      setComments(prev => [...prev, newC]);
-      setCommentContent('');
-    } catch (err: any) {
-      setCommentError(err.message || 'Error posting comment');
-    } finally {
-      setIsSubmittingComment(false);
-    }
-  };
-
-  // Delete comment handler
-  const handleDeleteComment = async (commentId: string) => {
-    try {
-      const res = await fetch(`/api/news/${post.id}/comments/${commentId}`, {
-        method: 'DELETE',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-      });
-      if (res.ok) {
-        setComments(prev => prev.filter(c => c.id !== commentId));
-      }
-    } catch (err) {
-      console.error('Failed to delete comment', err);
-    }
-  };
 
   // Format post publication date
   const formattedDate = new Intl.DateTimeFormat('en-US', {
@@ -337,20 +329,26 @@ export const PostCard: React.FC<PostCardProps> = ({
       {/* Post Top Metadata Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-zinc-800/80 text-xs">
         {/* Author & Badge Info */}
-        <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onUserClick?.(post.author)}
+          className="flex items-center gap-2 text-left group/author hover:opacity-95 transition-opacity cursor-pointer p-0.5 rounded-lg hover:bg-zinc-800/40"
+          title={`View @${post.author?.name || 'author'}'s profile`}
+        >
           <div className="relative">
-            <img
-              src={post.author?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=80&auto=format&fit=crop&q=80'}
+            <UserAvatar
+              src={post.author?.avatar}
               alt={post.author?.name || 'Author'}
-              className="w-7 h-7 rounded-full object-cover border border-zinc-700"
+              frameId={post.author?.equippedAvatarFrame}
+              size="sm"
             />
             {post.author?.role?.toLowerCase() === 'admin' && (
-              <span className="absolute -bottom-0.5 -right-0.5 p-0.5 bg-amber-500 text-zinc-950 rounded-full" title="Administrator">
+              <span className="absolute -bottom-0.5 -right-0.5 p-0.5 bg-amber-500 text-zinc-950 rounded-full z-20" title="Administrator">
                 <Crown className="w-2 h-2" />
               </span>
             )}
             {post.author?.role?.toLowerCase() === 'staff' && (
-              <span className="absolute -bottom-0.5 -right-0.5 p-0.5 bg-emerald-500 text-zinc-950 rounded-full" title="RoBeats Staff">
+              <span className="absolute -bottom-0.5 -right-0.5 p-0.5 bg-emerald-500 text-zinc-950 rounded-full z-20" title="RoBeats Staff">
                 <Shield className="w-2 h-2" />
               </span>
             )}
@@ -358,7 +356,9 @@ export const PostCard: React.FC<PostCardProps> = ({
 
           <div>
             <div className="flex items-center gap-1.5 font-semibold text-zinc-100 text-xs leading-none">
-              <span>{post.author?.name || 'RoBeats Staff'}</span>
+              <span className="group-hover/author:text-cyan-300 transition-colors underline decoration-transparent group-hover/author:decoration-cyan-400 underline-offset-2">
+                {post.author?.name || 'RoBeats Staff'}
+              </span>
               <span className={`text-[8px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded-full border ${
                 post.author?.role?.toLowerCase() === 'admin'
                   ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
@@ -391,17 +391,15 @@ export const PostCard: React.FC<PostCardProps> = ({
                   <Sparkles className="w-2.5 h-2.5" />
                   <span>New song</span>
                 </span>
-              ) : post.category === 'Updates' ? (
+              ) : (
                 <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold">
                   <Bell className="w-2.5 h-2.5" />
-                  <span>Updates</span>
+                  <span>{post.category || 'Updates'}</span>
                 </span>
-              ) : (
-                <span className="text-rose-400 font-medium">{post.category}</span>
               )}
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Action Controls: Edit Post & Delete Post (Staff & Admin) */}
         {(canEdit || canDelete) && (
@@ -578,9 +576,20 @@ export const PostCard: React.FC<PostCardProps> = ({
                 const missionRankName = song.missionRank || post.missionRank;
                 const rankObj = missionRankName ? ranks.find(r => r.name.toLowerCase() === missionRankName.toLowerCase()) : null;
                 
+                // Determine available difficulties
+                const hasE = hasDifficulty(song.difficulty?.easy);
+                const hasN = hasDifficulty(song.difficulty?.normal);
+                const hasH = hasDifficulty(song.difficulty?.hard);
+
                 // Determine chosen difficulty: 'E', 'N', or 'H'
                 const rawChosen = (song.chosenDifficulty || 'N').toUpperCase();
-                const diffLetter = rawChosen.startsWith('E') ? 'E' : rawChosen.startsWith('H') ? 'H' : 'N';
+                let diffLetter = rawChosen.startsWith('E') ? 'E' : rawChosen.startsWith('H') ? 'H' : 'N';
+                if (diffLetter === 'E' && !hasE) {
+                  diffLetter = hasN ? 'N' : hasH ? 'H' : 'N';
+                } else if (diffLetter === 'H' && !hasH) {
+                  diffLetter = hasN ? 'N' : hasE ? 'E' : 'N';
+                }
+
                 const diffNumber = 
                   diffLetter === 'E' 
                     ? (song.difficulty?.easy || '-')
@@ -610,6 +619,8 @@ export const PostCard: React.FC<PostCardProps> = ({
                       <FramedSongCover
                         coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
                         difficulty={diffLetter}
+                        song={song}
+                        hasEasyDifficulty={hasE}
                         className="w-full aspect-square rounded-md overflow-hidden bg-zinc-950 border border-zinc-800 mb-1.5"
                         imageClassName="w-full h-full object-cover group-hover/song:scale-105 transition-transform duration-300 ease-out"
                         showDifficultyBadge={false}
@@ -758,133 +769,66 @@ export const PostCard: React.FC<PostCardProps> = ({
         </div>
       )}
 
-      {/* COMMENTS SECTION (Everyone can comment) */}
-      <div className="mt-3 pt-2.5 border-t border-zinc-800/80">
-        <button
-          type="button"
-          onClick={() => setIsCommentsOpen(!isCommentsOpen)}
-          className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-cyan-300 font-medium cursor-pointer"
-        >
-          <MessageSquare className="w-3.5 h-3.5 text-cyan-400" />
-          <span>Comments ({comments.length})</span>
-          <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCommentsOpen ? 'rotate-180' : ''}`} />
-        </button>
+      {/* POST REACTIONS BAR */}
+      <div className="mt-3 pt-2.5 border-t border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+        {/* Reaction Buttons Row */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {REACTION_EMOJIS.map(({ emoji, label }) => {
+            const count = reactions[emoji] || 0;
+            const hasReacted = userReactions.includes(emoji);
 
-        {isCommentsOpen && (
-          <div className="mt-3 space-y-3 pt-2 border-t border-zinc-800/40 animate-fade-in">
-            {/* Comments List */}
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-              {comments.length === 0 ? (
-                <p className="text-zinc-500 text-xs py-2 italic text-center sm:text-left">
-                  No comments yet. Be the first to share your score or comment!
-                </p>
-              ) : (
-                comments.map(c => {
-                  const isAuthorOrStaff = isAuthenticated && user && (
-                    user.role === 'admin' || 
-                    user.role === 'staff' || 
-                    user.id === c.userId
-                  );
+            return (
+              <button
+                key={emoji}
+                type="button"
+                onClick={() => handleToggleReaction(emoji)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${
+                  hasReacted
+                    ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/50 shadow-xs shadow-cyan-500/20 scale-105'
+                    : count > 0
+                    ? 'bg-zinc-900/90 text-zinc-300 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800'
+                    : 'bg-zinc-900/40 text-zinc-500 border border-zinc-850 hover:text-zinc-300 hover:border-zinc-700'
+                }`}
+                title={`React with ${label}`}
+              >
+                <span className="text-sm leading-none">{emoji}</span>
+                {count > 0 && <span className="font-mono text-[11px] font-bold">{count}</span>}
+              </button>
+            );
+          })}
+        </div>
 
-                  return (
-                    <div key={c.id} className="p-2.5 bg-zinc-900/60 rounded-xl border border-zinc-800/80 flex items-start justify-between gap-2 text-xs">
-                      <div className="flex items-start gap-2 min-w-0">
-                        {c.authorAvatar ? (
-                          <img src={c.authorAvatar} alt={c.authorName} className="w-6 h-6 rounded-full object-cover shrink-0 border border-zinc-700" />
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 flex items-center justify-center text-[10px] font-bold shrink-0">
-                            {(c.authorName || c.author?.username || 'A').charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-zinc-200">{c.authorName || c.author?.username || 'Anonymous'}</span>
-                            {c.authorRole === 'admin' && (
-                              <span className="text-[8px] font-bold uppercase px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                Admin
-                              </span>
-                            )}
-                            {c.authorRole === 'staff' && (
-                              <span className="text-[8px] font-bold uppercase px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                Staff
-                              </span>
-                            )}
-                            <span className="text-[10px] text-zinc-500">
-                              {new Date(c.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
-                          </div>
-                          <p className="text-zinc-300 mt-1 whitespace-pre-wrap break-words leading-relaxed">
-                            {c.content}
-                          </p>
-                        </div>
-                      </div>
+        {/* Quick Reaction Button with Popover */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowReactionPicker(!showReactionPicker)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-cyan-300 text-xs font-medium cursor-pointer transition-colors"
+            title="Add Reaction"
+          >
+            <Smile className="w-3.5 h-3.5 text-cyan-400" />
+            <span>React</span>
+          </button>
 
-                      {isAuthorOrStaff && (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteComment(c.id)}
-                          className="p-1 rounded text-zinc-500 hover:text-rose-400 cursor-pointer shrink-0"
-                          title="Delete comment"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })
-              )}
+          {showReactionPicker && (
+            <div className="absolute bottom-full right-0 mb-2 p-1.5 bg-[#121722] border border-zinc-700 rounded-2xl shadow-xl flex items-center gap-1 z-30 animate-scale-in">
+              {REACTION_EMOJIS.map(({ emoji, label }) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => {
+                    handleToggleReaction(emoji);
+                    setShowReactionPicker(false);
+                  }}
+                  className="w-8 h-8 rounded-xl hover:bg-zinc-800 flex items-center justify-center text-lg hover:scale-125 transition-transform cursor-pointer"
+                  title={label}
+                >
+                  {emoji}
+                </button>
+              ))}
             </div>
-
-            {/* Comment Form: Strictly for Registered Accounts */}
-            {isAuthenticated ? (
-              <form onSubmit={handleCommentSubmit} className="space-y-2 pt-1">
-                {commentError && (
-                  <div className="text-rose-400 text-[11px]">{commentError}</div>
-                )}
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={commentContent}
-                    onChange={e => setCommentContent(e.target.value)}
-                    placeholder={`Comment as @${user?.username}...`}
-                    className="flex-1 px-3 py-1.5 text-xs bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder:text-zinc-600 focus:outline-none focus:border-cyan-500"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSubmittingComment || !commentContent.trim()}
-                    className="px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40 shrink-0"
-                  >
-                    <Send className="w-3 h-3" />
-                    <span>Send</span>
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs">
-                <div className="flex items-center gap-2 text-zinc-400 text-center sm:text-left">
-                  <Lock className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                  <span>Only registered accounts can comment on posts.</span>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => onOpenAccount?.('login')}
-                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold cursor-pointer transition-colors"
-                  >
-                    Log In
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onOpenAccount?.('signup')}
-                    className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-semibold cursor-pointer transition-colors"
-                  >
-                    Sign up
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </article>
   );

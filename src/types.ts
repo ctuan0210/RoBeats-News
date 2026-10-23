@@ -19,6 +19,7 @@ export interface User {
   id: string;
   username: string;
   displayName?: string;
+  robloxUsername?: string;
   email?: string;
   role: UserRole;
   permissions: UserPermissions;
@@ -27,8 +28,83 @@ export interface User {
   roBeatsRank?: string;
   preferredNoteSpeed?: string;
   createdAt: string;
+  currentStreak?: number;
+  bestStreak?: number;
+  lastCheckInDate?: string;
+  unlockedFrames?: string[];
+  equippedAvatarFrame?: string;
   [key: string]: any;
 }
+
+export interface AvatarFrameReward {
+  id: string;
+  name: string;
+  requiredDays: number;
+  description: string;
+  cssBorder: string;
+  glowColor: string;
+  badgeText: string;
+  previewGradient: string;
+  ringClass: string;
+}
+
+export const AVATAR_FRAME_REWARDS: AvatarFrameReward[] = [
+  {
+    id: 'frame_novice',
+    name: 'Cyan Pulse Frame',
+    requiredDays: 1,
+    description: 'Reward for Day 1 Streak Check-in!',
+    cssBorder: 'border-2 border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.6)] ring-1 ring-cyan-300',
+    glowColor: '#22D3EE',
+    badgeText: 'Day 1',
+    previewGradient: 'from-cyan-500/20 via-blue-500/20 to-teal-500/20',
+    ringClass: 'ring-2 ring-cyan-400 shadow-sm shadow-cyan-400/50'
+  },
+  {
+    id: 'frame_electro',
+    name: 'Electric Violet Frame',
+    requiredDays: 3,
+    description: 'Reward for 3-Day streak dedication!',
+    cssBorder: 'border-2 border-purple-400 ring-2 ring-fuchsia-400 shadow-[0_0_16px_rgba(168,85,247,0.7)] animate-pulse',
+    glowColor: '#A855F7',
+    badgeText: 'Day 3',
+    previewGradient: 'from-purple-500/25 via-fuchsia-500/20 to-pink-500/20',
+    ringClass: 'ring-2 ring-purple-400 shadow-md shadow-purple-500/60'
+  },
+  {
+    id: 'frame_gold',
+    name: 'Golden Maestro Frame',
+    requiredDays: 7,
+    description: 'Prestigious 7-Day streak frame radiating golden notes!',
+    cssBorder: 'border-2 border-amber-300 ring-2 ring-yellow-400 shadow-[0_0_18px_rgba(245,158,11,0.8)]',
+    glowColor: '#F59E0B',
+    badgeText: 'Day 7',
+    previewGradient: 'from-amber-500/30 via-yellow-500/25 to-orange-500/20',
+    ringClass: 'ring-2 ring-amber-400 shadow-lg shadow-amber-400/60'
+  },
+  {
+    id: 'frame_overdrive',
+    name: 'Cyber Overdrive Frame',
+    requiredDays: 14,
+    description: 'High-tier 14-Day streak holographic matrix cyber frame!',
+    cssBorder: 'border-2 border-emerald-400 ring-2 ring-cyan-400 shadow-[0_0_20px_rgba(16,185,129,0.8)]',
+    glowColor: '#10B981',
+    badgeText: 'Day 14',
+    previewGradient: 'from-emerald-500/30 via-teal-500/25 to-cyan-500/20',
+    ringClass: 'ring-2 ring-emerald-400 shadow-lg shadow-emerald-400/60'
+  },
+  {
+    id: 'frame_cosmic',
+    name: 'Cosmic Legend Frame',
+    requiredDays: 30,
+    description: 'Mythical 30-Day streak champion frame glowing with astral power!',
+    cssBorder: 'border-2 border-rose-400 ring-2 ring-indigo-400 shadow-[0_0_24px_rgba(244,63,94,0.9)] animate-pulse',
+    glowColor: '#F43F5E',
+    badgeText: 'Day 30',
+    previewGradient: 'from-rose-500/35 via-purple-500/30 to-indigo-500/25',
+    ringClass: 'ring-2 ring-rose-400 shadow-xl shadow-rose-500/70'
+  }
+];
 
 export interface AuthSession {
   user: User;
@@ -148,6 +224,8 @@ export interface Article {
     name: string;
     role: string;
     avatar?: string;
+    equippedAvatarFrame?: string;
+    [key: string]: any;
   };
   publishedAt: string;
   updatedAt?: string;
@@ -164,6 +242,7 @@ export interface Article {
   songs?: Song[];
   comments?: Comment[];
   reactions?: Record<string, number>;
+  userReactions?: Record<string, string[]>;
   [key: string]: any;
 }
 

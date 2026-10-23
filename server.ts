@@ -525,11 +525,17 @@ export interface UserRecord {
   displayName: string;
   avatar: string;
   bio?: string;
+  robloxUsername?: string;
   roBeatsRank?: string;
   preferredNoteSpeed?: string;
   role: UserRole;
   permissions: UserPermissions;
   createdAt: string;
+  currentStreak?: number;
+  bestStreak?: number;
+  lastCheckInDate?: string;
+  unlockedFrames?: string[];
+  equippedAvatarFrame?: string;
 }
 
 export function getDefaultPermissions(role: UserRole): UserPermissions {
@@ -597,6 +603,7 @@ const DEFAULT_USERS: UserRecord[] = [
     displayName: 'Meelo',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
     bio: 'Head Administrator of RoBeats News. Full system authority.',
+    robloxUsername: 'Meelo_RBX',
     role: 'admin',
     permissions: getDefaultPermissions('admin'),
     createdAt: new Date().toISOString(),
@@ -617,12 +624,17 @@ function ensureMeeloAdmin(users: UserRecord[]): boolean {
       displayName: 'Meelo',
       avatar: 'https://down-vn.img.susercontent.com/file/sg-11134201-81zwv-mih44jns7q4n42',
       bio: 'Administrator & Lead Curator of RoBeats News',
+      robloxUsername: 'Meelo_RBX',
       role: 'admin',
       permissions: getDefaultPermissions('admin'),
       createdAt: new Date().toISOString(),
     });
     changed = true;
   } else {
+    if (!users[meeloIdx].robloxUsername) {
+      users[meeloIdx].robloxUsername = 'Meelo_RBX';
+      changed = true;
+    }
     if (users[meeloIdx].role !== 'admin') {
       users[meeloIdx].role = 'admin';
       changed = true;
@@ -687,6 +699,7 @@ export interface NewsArticle {
     name: string;
     role: string;
     avatar?: string;
+    equippedAvatarFrame?: string;
   };
   publishedAt: string;
   updatedAt?: string;
@@ -703,6 +716,7 @@ export interface NewsArticle {
   songs?: any[];
   comments?: any[];
   reactions?: any;
+  userReactions?: Record<string, string[]>;
 }
 
 const DEFAULT_ARTICLES: NewsArticle[] = [
@@ -1177,7 +1191,7 @@ app.put('/api/auth/profile', (req, res) => {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
-  const { displayName, avatar, bio, roBeatsRank, preferredNoteSpeed, username } = req.body;
+  const { displayName, avatar, bio, roBeatsRank, preferredNoteSpeed, username, robloxUsername, equippedAvatarFrame } = req.body;
   const users = readUsers();
   const index = users.findIndex(u => u.id === user.id);
   if (index === -1) return res.status(404).json({ error: 'User not found' });
@@ -1192,8 +1206,10 @@ app.put('/api/auth/profile', (req, res) => {
   if (displayName) users[index].displayName = displayName.trim();
   if (avatar) users[index].avatar = avatar;
   if (bio !== undefined) users[index].bio = bio;
+  if (robloxUsername !== undefined) users[index].robloxUsername = robloxUsername.trim();
   if (roBeatsRank !== undefined) users[index].roBeatsRank = roBeatsRank;
   if (preferredNoteSpeed !== undefined) users[index].preferredNoteSpeed = preferredNoteSpeed;
+  if (equippedAvatarFrame !== undefined) users[index].equippedAvatarFrame = equippedAvatarFrame;
 
   writeUsers(users);
   res.json({ user: sanitizeUser(users[index]) });
@@ -1231,6 +1247,181 @@ app.put('/api/auth/password', (req, res) => {
 app.get('/api/auth/users', (req, res) => {
   const users = readUsers();
   res.json(users.map(sanitizeUser));
+});
+
+// 6b. Public User Profile endpoint (details: bio, username, Roblox username, account age)
+app.get('/api/users/:identifier', (req, res) => {
+  const rawId = req.params.identifier.trim();
+  const identifier = rawId.toLowerCase();
+  const users = readUsers();
+  const target = users.find(u => 
+    u.id === rawId || 
+    u.username.toLowerCase() === identifier || 
+    u.username.toLowerCase() === identifier.replace(/^@/, '') ||
+    u.displayName?.toLowerCase() === identifier
+  );
+  if (!target) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  res.json(sanitizeUser(target));
+});
+
+// Helper to get RoBeats GMT-8 date
+function getGmt8DateString(): string {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const gmt8Date = new Date(utc - 8 * 3600000);
+  const y = gmt8Date.getFullYear();
+  const m = String(gmt8Date.getMonth() + 1).padStart(2, '0');
+  const d = String(gmt8Date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getYesterdayGmt8DateString(): string {
+  const now = new Date();
+  const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+  const gmt8Date = new Date(utc - 8 * 3600000 - 86400000);
+  const y = gmt8Date.getFullYear();
+  const m = String(gmt8Date.getMonth() + 1).padStart(2, '0');
+  const d = String(gmt8Date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// 6c. Streak Check-In endpoint (Manual Click)
+app.post('/api/streak/check-in', (req, res) => {
+  try {
+    const user = getAuthUser(req);
+    const today = getGmt8DateString();
+    const yesterday = getYesterdayGmt8DateString();
+
+    if (!user) {
+      return res.json({
+        success: true,
+        isGuest: true,
+        today,
+        yesterday,
+        message: 'Guest streak recorded locally',
+      });
+    }
+
+    const users = readUsers();
+    const index = users.findIndex(u => u.id === user.id);
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+
+    const u = users[index];
+    const lastCheckIn = u.lastCheckInDate || '';
+
+    if (lastCheckIn === today) {
+      return res.json({
+        success: false,
+        alreadyCheckedIn: true,
+        message: 'You have already checked in today! Come back tomorrow for the next streak day.',
+        currentStreak: u.currentStreak || 1,
+        bestStreak: u.bestStreak || 1,
+        lastCheckInDate: u.lastCheckInDate,
+        unlockedFrames: u.unlockedFrames || [],
+        equippedAvatarFrame: u.equippedAvatarFrame,
+        user: sanitizeUser(u),
+      });
+    }
+
+    // Determine new streak count
+    let newStreak = 1;
+    if (lastCheckIn === yesterday) {
+      newStreak = (u.currentStreak || 0) + 1;
+    } else {
+      newStreak = 1;
+    }
+
+    const bestStreak = Math.max(u.bestStreak || 0, newStreak);
+    const existingFrames = new Set<string>(u.unlockedFrames || []);
+    const newlyUnlocked: string[] = [];
+
+    // Milestone Frame Rewards:
+    // Day 1: Cyan Pulse Frame (frame_novice)
+    if (newStreak >= 1 && !existingFrames.has('frame_novice')) {
+      existingFrames.add('frame_novice');
+      newlyUnlocked.push('frame_novice');
+    }
+    // Day 3: Electric Violet Frame (frame_electro)
+    if (newStreak >= 3 && !existingFrames.has('frame_electro')) {
+      existingFrames.add('frame_electro');
+      newlyUnlocked.push('frame_electro');
+    }
+    // Day 7: Golden Maestro Frame (frame_gold)
+    if (newStreak >= 7 && !existingFrames.has('frame_gold')) {
+      existingFrames.add('frame_gold');
+      newlyUnlocked.push('frame_gold');
+    }
+    // Day 14: Cyber Overdrive Frame (frame_overdrive)
+    if (newStreak >= 14 && !existingFrames.has('frame_overdrive')) {
+      existingFrames.add('frame_overdrive');
+      newlyUnlocked.push('frame_overdrive');
+    }
+    // Day 30: Cosmic Legend Frame (frame_cosmic)
+    if (newStreak >= 30 && !existingFrames.has('frame_cosmic')) {
+      existingFrames.add('frame_cosmic');
+      newlyUnlocked.push('frame_cosmic');
+    }
+
+    const updatedFrames = Array.from(existingFrames);
+    u.currentStreak = newStreak;
+    u.bestStreak = bestStreak;
+    u.lastCheckInDate = today;
+    u.unlockedFrames = updatedFrames;
+
+    // Automatically equip first unlocked frame if none equipped yet
+    if (!u.equippedAvatarFrame && updatedFrames.length > 0) {
+      u.equippedAvatarFrame = updatedFrames[0];
+    }
+
+    writeUsers(users);
+
+    res.json({
+      success: true,
+      alreadyCheckedIn: false,
+      currentStreak: newStreak,
+      bestStreak,
+      lastCheckInDate: today,
+      unlockedFrames: updatedFrames,
+      equippedAvatarFrame: u.equippedAvatarFrame,
+      newlyUnlockedFrames: newlyUnlocked,
+      user: sanitizeUser(u),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Streak check-in failed' });
+  }
+});
+
+// 6d. Equip Avatar Frame
+app.post('/api/streak/equip-frame', (req, res) => {
+  try {
+    const user = getAuthUser(req);
+    if (!user) return res.status(401).json({ error: 'Please log in to equip avatar frames' });
+
+    const { frameId } = req.body;
+    const users = readUsers();
+    const index = users.findIndex(u => u.id === user.id);
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+
+    const u = users[index];
+    const unlocked = u.unlockedFrames || [];
+
+    if (frameId && !unlocked.includes(frameId) && u.role !== 'admin') {
+      return res.status(400).json({ error: 'This avatar frame has not been unlocked yet' });
+    }
+
+    u.equippedAvatarFrame = frameId || undefined;
+    writeUsers(users);
+
+    res.json({
+      success: true,
+      equippedAvatarFrame: u.equippedAvatarFrame,
+      user: sanitizeUser(u),
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to equip avatar frame' });
+  }
 });
 
 // 7. Delete Account
@@ -1782,6 +1973,62 @@ app.get('/api/news/:id', (req, res) => {
   }
 });
 
+// 2.0 Post Reactions (Add / Toggle Reaction)
+app.post('/api/news/:id/reactions', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { emoji } = req.body;
+    if (!emoji || typeof emoji !== 'string') {
+      return res.status(400).json({ error: 'Reaction emoji is required' });
+    }
+
+    const articles = readArticles();
+    const idx = articles.findIndex(a => a.id === id);
+    if (idx === -1) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    const post = articles[idx];
+    if (!post.reactions || typeof post.reactions !== 'object') {
+      post.reactions = {};
+    }
+
+    const authUser = getAuthUser(req);
+    const userKey = authUser ? authUser.id : String(req.headers['x-client-id'] || req.ip || 'guest');
+
+    if (!post.userReactions || typeof post.userReactions !== 'object') {
+      post.userReactions = {};
+    }
+
+    const currentList: string[] = Array.isArray(post.userReactions[userKey]) ? post.userReactions[userKey] : [];
+    const hasReacted = currentList.includes(emoji);
+
+    if (hasReacted) {
+      // Toggle off
+      post.userReactions[userKey] = currentList.filter(e => e !== emoji);
+      post.reactions[emoji] = Math.max(0, (post.reactions[emoji] || 1) - 1);
+      if (post.reactions[emoji] === 0) {
+        delete post.reactions[emoji];
+      }
+    } else {
+      // Toggle on
+      post.userReactions[userKey] = [...currentList, emoji];
+      post.reactions[emoji] = (post.reactions[emoji] || 0) + 1;
+    }
+
+    articles[idx] = post;
+    writeArticles(articles);
+
+    res.json({
+      success: true,
+      reactions: post.reactions,
+      userReactions: post.userReactions[userKey] || [],
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to toggle reaction' });
+  }
+});
+
 // 2.1 Get comments for article
 app.get('/api/news/:id/comments', (req, res) => {
   try {
@@ -2182,6 +2429,7 @@ app.put('/api/songs/:id', requireAdmin, (req, res) => {
             coverArtEasy: updated.coverArtEasy,
             coverArtNormal: updated.coverArtNormal,
             coverArtHard: updated.coverArtHard,
+            difficulty: updated.difficulty,
           };
         }
         return ps;

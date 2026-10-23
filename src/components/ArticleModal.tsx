@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { Article, Comment } from '../types';
-import { addComment, deleteComment, publishToDiscord } from '../services/api';
+import { Article } from '../types';
+import { publishToDiscord } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import {
   X,
   Calendar,
   User,
   Send,
-  MessageSquare,
   Disc,
   Trash2,
   Share2,
@@ -19,7 +18,7 @@ import {
 } from 'lucide-react';
 import { SongDetailsModal } from './SongDetailsModal';
 import { FramedSongCover } from './FramedSongCover';
-import { SongEntry } from '../types';
+import { SongEntry, hasDifficulty } from '../types';
 
 export const ArticleModal: React.FC<{
   article: Article | null;
@@ -28,37 +27,10 @@ export const ArticleModal: React.FC<{
   onEdit?: (article: Article) => void;
 }> = ({ article, onClose, onRefresh, onEdit }) => {
   const { user, isStaff, isAdmin } = useAuth();
-  const [commentText, setCommentText] = useState('');
-  const [submittingComment, setSubmittingComment] = useState(false);
   const [publishStatus, setPublishStatus] = useState<string | null>(null);
   const [selectedSongDetail, setSelectedSongDetail] = useState<SongEntry | null>(null);
 
   if (!article) return null;
-
-  const handleAddComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentText.trim()) return;
-    setSubmittingComment(true);
-    try {
-      await addComment(article.id, commentText);
-      setCommentText('');
-      onRefresh();
-    } catch (err: any) {
-      alert(err.message || 'Failed to submit comment');
-    } finally {
-      setSubmittingComment(false);
-    }
-  };
-
-  const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm('Delete this comment?')) return;
-    try {
-      await deleteComment(article.id, commentId);
-      onRefresh();
-    } catch (err: any) {
-      alert(err.message || 'Failed to delete comment');
-    }
-  };
 
   const handleDiscordPublish = async () => {
     setPublishStatus('Posting to Discord webhook...');
@@ -185,13 +157,14 @@ export const ArticleModal: React.FC<{
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                 {article.songs.map((song, i) => {
                   const diff = typeof song.difficulty === 'object' ? song.difficulty : {};
-                  const cd = (song.chosenDifficulty || 'N').toUpperCase();
-                  const songCover = 
-                    cd.startsWith('E')
-                      ? (song.coverArtEasy || song.coverArt)
-                      : cd.startsWith('H')
-                      ? (song.coverArtHard || song.coverArt)
-                      : (song.coverArtNormal || song.coverArt || song.coverArtEasy || song.coverArtHard);
+                  const hasE = hasDifficulty(diff.easy);
+                  const hasN = hasDifficulty(diff.normal);
+                  const hasH = hasDifficulty(diff.hard);
+
+                  const rawCd = (song.chosenDifficulty || 'N').toUpperCase();
+                  let cd = rawCd.startsWith('E') ? 'E' : rawCd.startsWith('H') ? 'H' : 'N';
+                  if (cd === 'E' && !hasE) cd = hasN ? 'N' : hasH ? 'H' : 'N';
+                  if (cd === 'H' && !hasH) cd = hasN ? 'N' : hasE ? 'E' : 'N';
 
                   return (
                     <div
@@ -203,6 +176,8 @@ export const ArticleModal: React.FC<{
                       <FramedSongCover
                         coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
                         difficulty={cd}
+                        song={song}
+                        hasEasyDifficulty={hasE}
                         className="w-12 h-12 rounded-lg shrink-0 shadow"
                         showDifficultyBadge
                       />
@@ -210,9 +185,9 @@ export const ArticleModal: React.FC<{
                         <div className="font-semibold text-zinc-200 truncate group-hover:text-cyan-400 transition-colors">{song.title}</div>
                         <div className="text-[11px] text-zinc-400 truncate">{song.artist}</div>
                         <div className="flex gap-1 mt-1">
-                          {diff.easy && <span className="text-[9px] px-1 bg-emerald-950 text-emerald-300 rounded font-mono">EZ {diff.easy}</span>}
-                          {diff.normal && <span className="text-[9px] px-1 bg-amber-950 text-amber-300 rounded font-mono">NM {diff.normal}</span>}
-                          {diff.hard && <span className="text-[9px] px-1 bg-rose-950 text-rose-300 rounded font-mono">HD {diff.hard}</span>}
+                          {hasE && <span className="text-[9px] px-1 bg-emerald-950 text-emerald-300 rounded font-mono">EZ {diff.easy}</span>}
+                          {hasN && <span className="text-[9px] px-1 bg-amber-950 text-amber-300 rounded font-mono">NM {diff.normal}</span>}
+                          {hasH && <span className="text-[9px] px-1 bg-rose-950 text-rose-300 rounded font-mono">HD {diff.hard}</span>}
                         </div>
                       </div>
                     </div>
@@ -227,75 +202,6 @@ export const ArticleModal: React.FC<{
             {article.content}
           </div>
 
-          {/* Comments Section */}
-          <div className="pt-6 border-t border-zinc-800 space-y-4">
-            <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-cyan-400" />
-              Community Comments ({article.comments?.length || 0})
-            </h3>
-
-            {/* Post a Comment Form */}
-            {user ? (
-              <form onSubmit={handleAddComment} className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Join the discussion as rhythm player..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-700/80 rounded-xl text-xs text-zinc-100 focus:outline-none focus:border-cyan-500"
-                />
-                <button
-                  type="submit"
-                  disabled={submittingComment || !commentText.trim()}
-                  className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-black font-semibold text-xs rounded-xl transition disabled:opacity-50"
-                >
-                  Comment
-                </button>
-              </form>
-            ) : (
-              <div className="p-3 bg-zinc-900/40 rounded-xl border border-zinc-800 text-xs text-zinc-400">
-                Log in to post a comment and discuss missions.
-              </div>
-            )}
-
-            {/* Comments List */}
-            <div className="space-y-3 pt-2">
-              {article.comments && article.comments.length > 0 ? (
-                article.comments.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-start justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-zinc-200">{c.author?.username || c.authorName || 'Anonymous'}</span>
-                        {(c.author?.role || c.authorRole) && (
-                          <span className="text-[10px] px-1 py-0.2 bg-zinc-800 rounded text-zinc-400 uppercase font-mono">
-                            {c.author?.role || c.authorRole}
-                          </span>
-                        )}
-                        <span className="text-[10px] text-zinc-500">
-                          {new Date(c.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-zinc-300 leading-relaxed">{c.content}</p>
-                    </div>
-
-                    {(isStaff || (user && (user.id === c.author?.id || user.id === c.userId))) && (
-                      <button
-                        onClick={() => handleDeleteComment(c.id)}
-                        className="text-zinc-500 hover:text-rose-400 p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-zinc-500">No comments yet. Be the first to share your score!</p>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 

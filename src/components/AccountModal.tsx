@@ -16,9 +16,11 @@ import {
   CheckCircle2, 
   RefreshCw,
   Image as ImageIcon,
-  Shield
+  Shield,
+  Flame
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { UserAvatar } from './UserAvatar';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -74,6 +76,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   const [editDisplayName, setEditDisplayName] = useState('');
   const [editBio, setEditBio] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
+  const [editRobloxUsername, setEditRobloxUsername] = useState('');
 
   // Change password form state
   const [currentPass, setCurrentPass] = useState('');
@@ -95,6 +98,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         setEditDisplayName(user.displayName || user.username);
         setEditBio(user.bio || '');
         setEditAvatar(user.avatar || DEFAULT_AVATAR);
+        setEditRobloxUsername(user.robloxUsername || '');
       }
     } else {
       setActiveTab(initialTab === 'signup' ? 'signup' : 'login');
@@ -194,6 +198,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
       displayName: editDisplayName.trim(),
       bio: editBio.trim(),
       avatar: editAvatar.trim() || DEFAULT_AVATAR,
+      robloxUsername: editRobloxUsername.trim(),
     });
 
     if (ok) {
@@ -579,10 +584,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({
             <div className="space-y-5">
               {/* Profile Card - Showing ONLY username, display name, bio, and avatar */}
               <div className="p-5 rounded-2xl bg-gradient-to-br from-zinc-900/90 to-[#121824] border border-zinc-800 flex flex-col sm:flex-row items-center sm:items-start gap-4">
-                <img
+                <UserAvatar
                   src={user.avatar || DEFAULT_AVATAR}
                   alt={user.displayName}
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-cyan-500/40 shadow-lg shadow-cyan-500/10 shrink-0"
+                  frameId={user.equippedAvatarFrame}
+                  size="lg"
                 />
 
                 <div className="flex-1 text-center sm:text-left space-y-1">
@@ -594,12 +600,27 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       <p className="text-xs text-cyan-400 font-mono">@{user.username}</p>
                     </div>
 
-                    <span className="self-center sm:self-start text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 uppercase">
-                      {user.role === 'robeatsdev' ? 'RoBeatsDev' : user.role}
-                    </span>
+                    <div className="flex items-center gap-1.5 self-center sm:self-start">
+                      {user.currentStreak && user.currentStreak > 0 && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 border border-orange-500/40 flex items-center gap-1">
+                          <Flame className="w-3 h-3 text-orange-400" />
+                          <span>{user.currentStreak}d Streak</span>
+                        </span>
+                      )}
+                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 uppercase">
+                        {user.role === 'robeatsdev' ? 'RoBeatsDev' : user.role}
+                      </span>
+                    </div>
                   </div>
 
-                  <p className="text-xs text-zinc-300 pt-1.5 leading-relaxed">
+                  {user.robloxUsername && (
+                    <div className="flex items-center gap-1.5 text-xs text-zinc-400 pt-0.5">
+                      <span className="text-zinc-500 font-medium">Roblox:</span>
+                      <span className="font-mono text-cyan-300 font-semibold">@{user.robloxUsername}</span>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-zinc-300 pt-1 leading-relaxed">
                     {user.bio || 'No bio set yet.'}
                   </p>
                 </div>
@@ -668,6 +689,20 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   placeholder="Your display name"
                   className="w-full px-3 py-2 text-xs bg-zinc-900/90 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-cyan-500/70 transition-all"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  Roblox Username
+                </label>
+                <input
+                  type="text"
+                  value={editRobloxUsername}
+                  onChange={e => setEditRobloxUsername(e.target.value)}
+                  placeholder="e.g. Meelo_RBX"
+                  className="w-full px-3 py-2 text-xs bg-zinc-900/90 border border-zinc-800 rounded-xl text-white focus:outline-none focus:border-cyan-500/70 transition-all font-mono"
+                />
+                <p className="text-[11px] text-zinc-500 mt-1">Displayed publicly on your profile</p>
               </div>
 
               <div>

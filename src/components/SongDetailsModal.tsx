@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Music, Disc, Image as ImageIcon, Check, Edit3, Loader2 } from 'lucide-react';
+import { X, Music, Disc, Image as ImageIcon, Check, Edit3, Loader2, Activity, Clock } from 'lucide-react';
 import { SongEntry, ElementConfig, DifficultyFramesConfig, DEFAULT_DIFFICULTY_FRAMES, hasDifficulty } from '../types';
 import { fetchElementsList, adminEditSong, fetchDifficultyFrames } from '../services/fandomService';
 import { getElementData } from '../constants/elements';
@@ -178,14 +178,14 @@ export const SongDetailsModal: React.FC<SongDetailsModalProps> = ({ song: initia
                 <strong className="text-zinc-200">{song.mapper || 'Official RoBeats'}</strong>
               </p>
 
-              {/* Linked Element Image & Name */}
-              <div className="flex items-center gap-2 pt-1 justify-center sm:justify-start">
+              {/* Linked Element Image & Name, BPM, Duration */}
+              <div className="flex items-center gap-2 pt-1.5 flex-wrap justify-center sm:justify-start">
                 <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border ${elementData.bg} ${elementData.border}`}>
                   {elementData.imageUrl ? (
                     <img 
                       src={elementData.imageUrl} 
                       alt={elementData.name} 
-                      className="w-3.5 h-3.5 object-contain"
+                      className="w-3.5 h-3.5 object-contain" 
                       onError={e => { (e.target as HTMLElement).style.display = 'none'; }}
                     />
                   ) : (
@@ -196,12 +196,28 @@ export const SongDetailsModal: React.FC<SongDetailsModalProps> = ({ song: initia
                   </span>
                 </div>
 
-                {(song.bpm || song.duration) && (
-                  <div className="flex items-center gap-3 text-xs text-zinc-400 font-mono-numbers">
-                    {song.bpm && <span>{song.bpm} BPM</span>}
-                    {song.duration && <span>{song.duration}</span>}
-                  </div>
-                )}
+                {/* Song BPM */}
+                <div 
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-xs shadow-xs"
+                  title="Song Tempo (BPM)"
+                >
+                  <Activity className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>
+                    <strong className="text-white font-bold">{song.bpm || '-'}</strong>
+                    <span className="text-[10px] text-zinc-400 ml-1 font-sans">BPM</span>
+                  </span>
+                </div>
+
+                {/* Song Duration */}
+                <div 
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 font-mono text-xs shadow-xs"
+                  title="Song Duration"
+                >
+                  <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>
+                    <strong className="text-white font-bold">{song.duration || '-'}</strong>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -260,16 +276,13 @@ export const SongDetailsModal: React.FC<SongDetailsModalProps> = ({ song: initia
             </form>
           )}
 
-          {/* Difficulty Frame Previews */}
+          {/* Cover Art Previews */}
           <div className="space-y-2.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-1.5">
                 <ImageIcon className="w-3.5 h-3.5 text-cyan-400" />
-                <span>Difficulty Cover Art Frame Overlays</span>
+                <span>Cover Art</span>
               </label>
-              <span className="text-[10px] text-zinc-500">
-                Click difficulty to preview framed cover
-              </span>
             </div>
 
             <div className={`grid ${gridColsClass} gap-2.5`}>
@@ -349,16 +362,6 @@ export const SongDetailsModal: React.FC<SongDetailsModalProps> = ({ song: initia
                 </div>
               )}
             </div>
-
-            {/* Note when Easy difficulty is absent */}
-            {!hasEasy && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-zinc-900/60 border border-zinc-800/80 text-zinc-400 text-xs">
-                <span className="w-2 h-2 rounded-full bg-zinc-600 shrink-0" />
-                <span>
-                  This song does not have an <strong>Easy difficulty</strong> (marked <code className="text-zinc-200 font-mono font-bold">-</code>). Easy difficulty frame is excluded.
-                </span>
-              </div>
-            )}
           </div>
         </div>
 

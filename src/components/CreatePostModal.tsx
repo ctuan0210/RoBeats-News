@@ -42,6 +42,8 @@ export interface NewSongDraft {
   title: string;
   artist: string;
   mapper: string;
+  bpm?: string;
+  duration?: string;
   easyLevel: string;
   normalLevel: string;
   hardLevel: string;
@@ -86,6 +88,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       title: '',
       artist: '',
       mapper: 'Official RoBeats',
+      bpm: '',
+      duration: '',
       easyLevel: '1',
       normalLevel: '5',
       hardLevel: '10',
@@ -189,6 +193,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
         title: '',
         artist: '',
         mapper: 'Official RoBeats',
+        bpm: '',
+        duration: '',
         easyLevel: '1',
         normalLevel: '5',
         hardLevel: '10',
@@ -240,7 +246,13 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
 
   const handleSetSongDifficulty = (uniqueKeyOrId: string, diff: 'E' | 'N' | 'H') => {
     setSelectedSongs(prev =>
-      prev.map(s => ((s.uniqueKey || s.id) === uniqueKeyOrId ? { ...s, chosenDifficulty: diff } : s))
+      prev.map(s => {
+        if ((s.uniqueKey || s.id) !== uniqueKeyOrId) return s;
+        if (diff === 'E' && !hasDifficulty(s.difficulty?.easy)) return s;
+        if (diff === 'H' && !hasDifficulty(s.difficulty?.hard)) return s;
+        if (diff === 'N' && !hasDifficulty(s.difficulty?.normal)) return s;
+        return { ...s, chosenDifficulty: diff };
+      })
     );
   };
 
@@ -430,6 +442,8 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
             title: s.title.trim(),
             artist: s.artist.trim(),
             mapper: s.mapper.trim() || 'Official RoBeats',
+            bpm: s.bpm?.trim() || '',
+            duration: s.duration?.trim() || '',
             coverArt: primaryCover,
             coverArtEasy: easyCover || primaryCover,
             coverArtNormal: normalCover || primaryCover,
@@ -543,9 +557,6 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-400">
-                Publish a mission post, new song announcement, or game update
-              </p>
             </div>
           </div>
 
@@ -906,10 +917,39 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                         </div>
                       </div>
 
+                      {/* Song BPM & Duration */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
+                            BPM
+                          </label>
+                          <input
+                            type="text"
+                            value={draft.bpm || ''}
+                            onChange={e => handleUpdateNewSongDraft(draft.id, { bpm: e.target.value })}
+                            placeholder="e.g. 175"
+                            className="w-full px-3 py-2 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500 font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
+                            Duration
+                          </label>
+                          <input
+                            type="text"
+                            value={draft.duration || ''}
+                            onChange={e => handleUpdateNewSongDraft(draft.id, { duration: e.target.value })}
+                            placeholder="e.g. 2:14"
+                            className="w-full px-3 py-2 text-xs bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder:text-zinc-600 focus:outline-none focus:border-emerald-500 font-mono"
+                          />
+                        </div>
+                      </div>
+
                       {/* 3 Difficulty levels editable per difficulty (Easy : 1, Normal: 5, Hard: 10) */}
                       <div>
                         <label className="block text-[11px] font-semibold text-zinc-300 mb-1.5">
-                          Song Difficulties (Editable per difficulty level)
+                          Song Difficulties
                         </label>
                         <div className="grid grid-cols-3 gap-2.5">
                           {/* Easy Level */}
@@ -1026,7 +1066,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                           return (
                             <div className="pt-2 border-t border-zinc-800/70 space-y-1.5">
                               <span className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider block">
-                                Difficulty Frame Previews
+                                Cover art preview
                               </span>
                               <div className={`grid ${draftCols} gap-2`}>
                                 {/* Easy - only shown if draft has Easy difficulty */}
@@ -1078,7 +1118,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                       {/* Elements: Manual choose from available added elements */}
                       <div>
                         <label className="block text-[11px] font-semibold text-zinc-300 mb-1.5">
-                          Element (Manual choose from available elements)
+                          Song element:
                         </label>
                         <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
                           {elements.map(el => {
@@ -1182,6 +1222,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                             <FramedSongCover
                               coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
                               difficulty="normal"
+                              song={song}
                               className="w-7 h-7 rounded shrink-0 shadow"
                             />
                             <div className="truncate">
@@ -1276,6 +1317,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                           <FramedSongCover
                             coverArt={song.coverArt || song.coverArtNormal || song.coverArtEasy || song.coverArtHard || ''}
                             difficulty={chosen}
+                            song={song}
                             className="w-10 h-10 rounded-lg shadow shrink-0"
                             onClick={() => setSelectedSongDetail(song)}
                             title="Click to view song details & difficulty frames"
@@ -1332,6 +1374,12 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                           <span className="text-[10px] text-zinc-400 font-semibold">Featured Level:</span>
                           {(['E', 'N', 'H'] as const).map(diff => {
                             const isChosen = chosen === diff;
+                            const hasThisDiff = 
+                              diff === 'E' 
+                                ? hasDifficulty(song.difficulty?.easy) 
+                                : diff === 'N' 
+                                ? hasDifficulty(song.difficulty?.normal) 
+                                : hasDifficulty(song.difficulty?.hard);
                             const diffVal = 
                               diff === 'E' 
                                 ? song.difficulty?.easy 
@@ -1343,16 +1391,20 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                               <button
                                 key={diff}
                                 type="button"
+                                disabled={!hasThisDiff}
                                 onClick={() => handleSetSongDifficulty(songKey, diff)}
-                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer transition-colors ${
-                                  isChosen
+                                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-colors ${
+                                  !hasThisDiff
+                                    ? 'bg-zinc-900/60 text-zinc-600 border border-zinc-850 cursor-not-allowed opacity-50'
+                                    : isChosen
                                     ? diff === 'E'
-                                      ? 'bg-emerald-500 text-zinc-950'
+                                      ? 'bg-emerald-500 text-zinc-950 cursor-pointer'
                                       : diff === 'N'
-                                      ? 'bg-blue-500 text-white'
-                                      : 'bg-red-500 text-white'
-                                    : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200'
+                                      ? 'bg-blue-500 text-white cursor-pointer'
+                                      : 'bg-red-500 text-white cursor-pointer'
+                                    : 'bg-zinc-800/80 text-zinc-400 hover:text-zinc-200 cursor-pointer'
                                 }`}
+                                title={!hasThisDiff ? `Song does not have ${diff === 'E' ? 'Easy' : diff === 'N' ? 'Normal' : 'Hard'} difficulty (-)` : undefined}
                               >
                                 {diff} {diffVal || '-'}
                               </button>
