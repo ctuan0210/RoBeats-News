@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { CountdownBadge } from './components/CountdownTimer';
 
+const API_BASE_URL = 'https://robeats-d1-api.anh6052018.workers.dev';
+
 export default function App() {
   const { user, token, isAuthenticated } = useAuth();
 
@@ -66,7 +68,7 @@ export default function App() {
   const fetchPosts = async () => {
     try {
       setIsLoadingPosts(true);
-      const res = await fetch('/api/news');
+      const res = await fetch(`${API_BASE_URL}/api/news`);
       if (res.ok) {
         const data = await res.json();
         setPosts(data);
@@ -100,7 +102,7 @@ export default function App() {
 
   const handleDeletePost = async (id: string) => {
     try {
-      const res = await fetch(`/api/news/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/news/${id}`, {
         method: 'DELETE',
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
