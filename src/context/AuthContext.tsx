@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthSession } from '../types';
+import { safeJson } from '../utils/safeJson';
 
 interface AuthContextType {
   user: User | null;
@@ -62,8 +63,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         });
 
         if (res.ok) {
-          const data = await res.json();
-          setUser(data.user);
+          const data = await safeJson(res, null);
+          if (data && data.user) {
+            setUser(data.user);
+          } else {
+            localStorage.removeItem('robeats_auth_token');
+            setToken(null);
+            setUser(null);
+          }
         } else {
           // Token expired or invalid
           localStorage.removeItem('robeats_auth_token');
@@ -84,8 +91,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res = await fetch('/api/auth/users');
       if (res.ok) {
-        const data = await res.json();
-        setAllUsers(data);
+        const data = await safeJson(res, []);
+        if (Array.isArray(data)) {
+          setAllUsers(data);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch accounts list', e);
@@ -102,9 +111,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, {});
       if (!res.ok) {
-        setAuthError(data.error || 'Login failed. Please check credentials.');
+        setAuthError(data?.error || 'Login failed. Please check credentials.');
         return false;
       }
 
@@ -140,9 +149,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify(userData),
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, {});
       if (!res.ok) {
-        setAuthError(data.error || 'Signup failed. Please check required fields.');
+        setAuthError(data?.error || 'Signup failed. Please check required fields.');
         return false;
       }
 
@@ -179,9 +188,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify(profileData),
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, {});
       if (!res.ok) {
-        setAuthError(data.error || 'Failed to update profile');
+        setAuthError(data?.error || 'Failed to update profile');
         return false;
       }
 
@@ -205,9 +214,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         body: JSON.stringify({ currentPassword, newPassword }),
       });
 
-      const data = await res.json();
+      const data = await safeJson(res, {});
       if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to change password' };
+        return { success: false, error: data?.error || 'Failed to change password' };
       }
 
       return { success: true };
@@ -230,8 +239,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        setAuthError(data.error || 'Failed to delete account');
+        const data = await safeJson(res, {});
+        setAuthError(data?.error || 'Failed to delete account');
         return false;
       }
 
@@ -266,9 +275,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        const data = await res.json();
-        setAllUsers(data);
-        return data;
+        const data = await safeJson(res, []);
+        if (Array.isArray(data)) {
+          setAllUsers(data);
+          return data;
+        }
       }
       return [];
     } catch {
@@ -283,7 +294,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        return await res.json();
+        return await safeJson(res, null);
       }
       return null;
     } catch {
@@ -305,9 +316,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         body: JSON.stringify(data),
       });
-      const resData = await res.json();
+      const resData = await safeJson(res, {});
       if (!res.ok) {
-        return { success: false, error: resData.error || 'Failed to update user' };
+        return { success: false, error: resData?.error || 'Failed to update user' };
       }
       if (user?.id === userId) {
         setUser(resData.user);
@@ -333,9 +344,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         body: JSON.stringify({ newPassword }),
       });
-      const data = await res.json();
+      const data = await safeJson(res, {});
       if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to reset password' };
+        return { success: false, error: data?.error || 'Failed to reset password' };
       }
       return { success: true };
     } catch (err: any) {
@@ -350,9 +361,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data = await safeJson(res, {});
       if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to delete user' };
+        return { success: false, error: data?.error || 'Failed to delete user' };
       }
       await adminGetUsers();
       return { success: true };
@@ -374,9 +385,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
         body: JSON.stringify(userData),
       });
-      const data = await res.json();
+      const data = await safeJson(res, {});
       if (!res.ok) {
-        return { success: false, error: data.error || 'Failed to create user' };
+        return { success: false, error: data?.error || 'Failed to create user' };
       }
       await adminGetUsers();
       return { success: true, user: data.user };

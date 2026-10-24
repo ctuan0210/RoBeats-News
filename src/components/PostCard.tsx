@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { CountdownBadge } from './CountdownTimer';
 import { FramedSongCover } from './FramedSongCover';
+import { safeJson } from '../utils/safeJson';
 import { UserAvatar } from './UserAvatar';
 import { NewsArticle, SongEntry, ElementConfig, RankConfig, hasDifficulty } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -111,8 +112,8 @@ export const PostCard: React.FC<PostCardProps> = ({
         body: JSON.stringify({ emoji }),
       });
       if (res.ok) {
-        const data = await res.json();
-        if (data.reactions) setReactions(data.reactions);
+        const data = await safeJson(res, null);
+        if (data && data.reactions) setReactions(data.reactions);
       }
     } catch (err) {
       console.error('Failed to update reaction', err);

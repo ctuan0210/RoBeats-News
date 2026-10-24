@@ -1,4 +1,5 @@
 import { Article, Song, ElementConfig, RankConfig, DiscordWebhooksConfig, Comment } from '../types';
+import { safeJson } from '../utils/safeJson';
 
 function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('robeats_token') || localStorage.getItem('robeats_auth_token');
@@ -8,13 +9,13 @@ function getAuthHeader(): Record<string, string> {
 export async function fetchNewsArticles(): Promise<Article[]> {
   const res = await fetch('/api/news');
   if (!res.ok) throw new Error('Failed to fetch articles');
-  return res.json();
+  return safeJson(res, []);
 }
 
 export async function fetchArticleById(id: string): Promise<Article> {
   const res = await fetch(`/api/news/${id}`);
   if (!res.ok) throw new Error('Failed to fetch article');
-  return res.json();
+  return safeJson(res, null as any);
 }
 
 export async function saveArticle(article: Partial<Article>, id?: string): Promise<Article> {
@@ -29,10 +30,10 @@ export async function saveArticle(article: Partial<Article>, id?: string): Promi
     body: JSON.stringify(article),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to save article');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to save article');
   }
-  return res.json();
+  return safeJson(res, null as any);
 }
 
 export async function deleteArticle(id: string): Promise<void> {
@@ -51,8 +52,8 @@ export async function publishToDiscord(id: string): Promise<{ success: boolean; 
       ...getAuthHeader(),
     },
   });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Failed to trigger Discord webhook');
+  const data = await safeJson(res, {});
+  if (!res.ok) throw new Error(data?.error || 'Failed to trigger Discord webhook');
   return data;
 }
 
@@ -66,10 +67,10 @@ export async function addComment(postId: string, content: string): Promise<Comme
     body: JSON.stringify({ content }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to post comment');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to post comment');
   }
-  return res.json();
+  return safeJson(res, null as any);
 }
 
 export async function deleteComment(postId: string, commentId: string): Promise<void> {
@@ -83,7 +84,7 @@ export async function deleteComment(postId: string, commentId: string): Promise<
 export async function fetchSongsList(): Promise<Song[]> {
   const res = await fetch('/api/songs');
   if (!res.ok) throw new Error('Failed to fetch songs');
-  return res.json();
+  return safeJson(res, []);
 }
 
 export async function saveSong(song: Partial<Song>, id?: string): Promise<Song> {
@@ -98,7 +99,7 @@ export async function saveSong(song: Partial<Song>, id?: string): Promise<Song> 
     body: JSON.stringify(song),
   });
   if (!res.ok) throw new Error('Failed to save song');
-  return res.json();
+  return safeJson(res, null as any);
 }
 
 export async function deleteSong(id: string): Promise<void> {
@@ -112,7 +113,7 @@ export async function deleteSong(id: string): Promise<void> {
 export async function fetchElementsList(): Promise<ElementConfig[]> {
   const res = await fetch('/api/elements');
   if (!res.ok) throw new Error('Failed to fetch elements');
-  return res.json();
+  return safeJson(res, []);
 }
 
 export async function updateElementsList(elements: ElementConfig[]): Promise<void> {
@@ -130,7 +131,7 @@ export async function updateElementsList(elements: ElementConfig[]): Promise<voi
 export async function fetchRanksList(): Promise<RankConfig[]> {
   const res = await fetch('/api/ranks');
   if (!res.ok) throw new Error('Failed to fetch ranks');
-  return res.json();
+  return safeJson(res, []);
 }
 
 export async function updateRanksList(ranks: RankConfig[]): Promise<void> {
@@ -150,7 +151,7 @@ export async function fetchDiscordWebhooks(): Promise<DiscordWebhooksConfig> {
     headers: getAuthHeader(),
   });
   if (!res.ok) throw new Error('Failed to fetch webhooks');
-  return res.json();
+  return safeJson(res, {} as any);
 }
 
 export async function updateDiscordWebhooks(config: DiscordWebhooksConfig): Promise<void> {
@@ -175,5 +176,5 @@ export async function generateAiImage(prompt: string, aspectRatio = '16:9'): Pro
     body: JSON.stringify({ prompt, aspectRatio }),
   });
   if (!res.ok) throw new Error('Failed to generate image');
-  return res.json();
+  return safeJson(res, { imageUrl: '' });
 }

@@ -18,6 +18,7 @@ import {
 import { User, RoBeatsRank, RankConfig } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { fetchRanksList } from '../services/fandomService';
+import { safeJson } from '../utils/safeJson';
 import { UserAvatar } from './UserAvatar';
 
 interface UserProfileModalProps {
@@ -103,8 +104,8 @@ export const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     setIsLoading(true);
     fetch(`/api/users/${encodeURIComponent(identifier)}`)
-      .then(res => {
-        if (res.ok) return res.json();
+      .then(async res => {
+        if (res.ok) return await safeJson(res, null);
         return null;
       })
       .then(fullUser => {

@@ -41,6 +41,7 @@ import {
 } from '../types';
 import { fetchDifficultyFrames, updateDifficultyFrames } from '../services/fandomService';
 import { FramedSongCover } from './FramedSongCover';
+import { safeJson } from '../utils/safeJson';
 
 export const AdminPanel: React.FC<{
   isOpen: boolean;
@@ -118,8 +119,10 @@ export const AdminPanel: React.FC<{
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (res.ok) {
-        const data = await res.json();
-        setUserList(data);
+        const data = await safeJson(res, []);
+        if (Array.isArray(data)) {
+          setUserList(data);
+        }
       }
     } catch (err) {
       console.error('Error fetching users:', err);

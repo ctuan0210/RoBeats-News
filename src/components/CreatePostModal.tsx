@@ -34,6 +34,7 @@ import { fetchSongList, fetchElementsList, fetchRanksList } from '../services/fa
 import { getElementData } from '../constants/elements';
 import { SongDetailsModal } from './SongDetailsModal';
 import { FramedSongCover } from './FramedSongCover';
+import { safeJson } from '../utils/safeJson';
 
 export type PostCategoryType = 'Daily mission' | 'Weekly mission' | 'Weekly Leaderboard' | 'New song' | 'Updates';
 
@@ -516,12 +517,14 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
       });
 
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to create post');
+        const errorData = await safeJson(res, {});
+        throw new Error(errorData?.error || 'Failed to create post');
       }
 
-      const createdPost = await res.json();
-      onPostCreated(createdPost);
+      const createdPost = await safeJson(res, null);
+      if (createdPost) {
+        onPostCreated(createdPost);
+      }
       onClose();
     } catch (err: any) {
       setErrorMessage(err.message || 'Error creating post');

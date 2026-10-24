@@ -1890,8 +1890,14 @@ app.get('/api/songs/fandom', async (req, res) => {
     if (!response.ok) {
       return res.status(response.status).json({ error: 'Failed to fetch from Fandom Wiki' });
     }
-    const data = await response.json();
-    res.json(data);
+    const text = await response.text();
+    let data;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      return res.status(502).json({ error: 'Fandom Wiki returned invalid or empty JSON' });
+    }
+    res.json(data || {});
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Proxy fetch failed' });
   }
@@ -2707,6 +2713,13 @@ Return ONLY the numbered list of headlines without preamble.`;
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to generate headlines' });
   }
+});
+
+// ----------------------------------------------------
+// UNHANDLED API ROUTE FALLBACK
+// ----------------------------------------------------
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: `API route not found: ${req.method} ${req.path}` });
 });
 
 // ----------------------------------------------------

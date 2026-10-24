@@ -31,6 +31,7 @@ import { fetchSongList, fetchElementsList, fetchRanksList, publishNewsToDiscordW
 import { getElementData } from '../constants/elements';
 import { SongDetailsModal } from './SongDetailsModal';
 import { FramedSongCover } from './FramedSongCover';
+import { safeJson } from '../utils/safeJson';
 
 export type PostCategoryType = 'Daily mission' | 'Weekly mission' | 'Weekly Leaderboard' | 'New song' | 'Updates';
 
@@ -345,12 +346,14 @@ export const EditPostModal: React.FC<EditPostModalProps> = ({
       });
 
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to update post');
+        const errData = await safeJson(res, {});
+        throw new Error(errData?.error || 'Failed to update post');
       }
 
-      const updated = await res.json();
-      onPostUpdated(updated);
+      const updated = await safeJson(res, null);
+      if (updated) {
+        onPostUpdated(updated);
+      }
       onClose();
     } catch (err: any) {
       setErrorMessage(err.message || 'Error updating post');

@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { NewsArticle, NewsCategory, ImageSize, AspectRatio } from '../types';
+import { safeJson } from '../utils/safeJson';
 
 interface StoryEditorModalProps {
   article: Partial<NewsArticle> | null;
@@ -122,9 +123,9 @@ export const StoryEditorModal: React.FC<StoryEditorModalProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const data = await safeJson(response, {});
       if (!response.ok) {
-        throw new Error(data.error || 'Image generation failed');
+        throw new Error(data?.error || 'Image generation failed');
       }
 
       setGeneratedImage(data.imageUrl);
@@ -162,8 +163,8 @@ export const StoryEditorModal: React.FC<StoryEditorModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content }),
       });
-      const data = await res.json();
-      if (data.suggestions) {
+      const data = await safeJson(res, {});
+      if (data && data.suggestions) {
         const lines = data.suggestions
           .split('\n')
           .map((l: string) => l.replace(/^\d+[\.\)]\s*/, '').trim())

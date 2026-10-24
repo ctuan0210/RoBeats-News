@@ -22,6 +22,7 @@ import {
   Crown
 } from 'lucide-react';
 import { CountdownBadge } from './components/CountdownTimer';
+import { safeJson } from './utils/safeJson';
 
 const API_BASE_URL = 'https://robeats-d1-api.anh6052018.workers.dev';
 
@@ -64,17 +65,46 @@ export default function App() {
     user.permissions?.canPublishNews
   );
 
-  // Fetch posts from backend
+  // Fetch posts from backend with resilient fallback
   const fetchPosts = async () => {
     try {
       setIsLoadingPosts(true);
-      const res = await fetch(`${API_BASE_URL}/api/news`);
-      if (res.ok) {
-        const data = await res.json();
-        setPosts(data);
+      let loadedPosts: NewsArticle[] | null = null;
+
+      // 1. Try external API if configured
+      if (API_BASE_URL) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/news`);
+          if (res.ok) {
+            const data = await safeJson<NewsArticle[] | null>(res, null);
+            if (Array.isArray(data) && data.length > 0) {
+              loadedPosts = data;
+            }
+          }
+        } catch (err) {
+          console.warn('External D1 API fetch error, falling back to local server', err);
+        }
       }
+
+      // 2. Fallback to local server if external didn't provide posts
+      if (!loadedPosts) {
+        try {
+          const localRes = await fetch('/api/news');
+          if (localRes.ok) {
+            const localData = await safeJson<NewsArticle[] | null>(localRes, null);
+            if (Array.isArray(localData)) {
+              loadedPosts = localData;
+            }
+          }
+        } catch (localErr) {
+          console.warn('Local news fetch error', localErr);
+        }
+      }
+
+      setPosts(loadedPosts || []);
     } catch (err) {
       console.error('Failed to fetch posts', err);
+      setPosts([]);
     } finally {
       setIsLoadingPosts(false);
     }
@@ -102,13 +132,30 @@ export default function App() {
 
   const handleDeletePost = async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE_URL}/api/news/${id}`, {
+      // Delete on external D1 API if configured
+      if (API_BASE_URL) {
+        try {
+          await fetch(`${API_BASE_URL}/api/news/${id}`, {
+            method: 'DELETE',
+            headers: {
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            },
+          });
+        } catch {}
+      }
+
+      // Also delete on local server
+      const localRes = await fetch(`/api/news/${id}`, {
         method: 'DELETE',
         headers: {
           ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
       });
-      if (res.ok) {
+
+      if (localRes.ok) {
+        setPosts(prev => prev.filter(p => p.id !== id));
+      } else {
+        // Even if local had 404, still update state if deleted
         setPosts(prev => prev.filter(p => p.id !== id));
       }
     } catch (err) {

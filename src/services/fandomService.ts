@@ -1,5 +1,6 @@
 import { SongEntry, ElementConfig, RankConfig, DifficultyFramesConfig, DEFAULT_DIFFICULTY_FRAMES, User } from '../types';
 import { buildDefaultElements } from '../constants/elements';
+import { safeJson } from '../utils/safeJson';
 
 // In-memory cache for fast local access
 let cachedSongs: SongEntry[] | null = null;
@@ -29,7 +30,7 @@ export async function fetchSongList(forceRefresh: boolean = false): Promise<Song
     if (!res.ok) {
       throw new Error(`Failed to load songs: HTTP ${res.status}`);
     }
-    const data: SongEntry[] = await res.json();
+    const data: SongEntry[] = await safeJson(res, []);
     cachedSongs = data;
     return data;
   } catch (err) {
@@ -56,11 +57,11 @@ export async function adminAddSong(song: Omit<SongEntry, 'id'>): Promise<SongEnt
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to add song');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to add song');
   }
 
-  const created: SongEntry = await res.json();
+  const created: SongEntry = await safeJson(res, song as any);
   if (cachedSongs) {
     cachedSongs = [created, ...cachedSongs];
   }
@@ -82,11 +83,11 @@ export async function adminEditSong(songId: string, updates: Partial<SongEntry>)
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to edit song');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to edit song');
   }
 
-  const updated: SongEntry = await res.json();
+  const updated: SongEntry = await safeJson(res, { id: songId, ...updates } as any);
   if (cachedSongs) {
     cachedSongs = cachedSongs.map(s => s.id === songId ? updated : s);
   }
@@ -106,8 +107,8 @@ export async function adminDeleteSong(songId: string): Promise<void> {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to delete song');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to delete song');
   }
 
   if (cachedSongs) {
@@ -129,7 +130,7 @@ export async function fetchElementsList(): Promise<ElementConfig[]> {
   try {
     const res = await fetch('/api/elements');
     if (!res.ok) throw new Error('Failed to fetch elements');
-    const data: ElementConfig[] = await res.json();
+    const data: ElementConfig[] = await safeJson(res, []);
     cachedElements = data;
     return data;
   } catch (err) {
@@ -156,12 +157,12 @@ export async function updateElementsList(elements: ElementConfig[]): Promise<Ele
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to update elements');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to update elements');
   }
 
-  const result = await res.json();
-  cachedElements = result.elements || elements;
+  const result = await safeJson(res, {});
+  cachedElements = result?.elements || elements;
   return (cachedElements || elements);
 }
 
@@ -177,11 +178,11 @@ export async function fetchDiscordWebhooks(): Promise<Record<string, string>> {
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to fetch webhooks');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to fetch webhooks');
   }
 
-  return res.json();
+  return safeJson(res, {});
 }
 
 /**
@@ -199,12 +200,12 @@ export async function updateDiscordWebhooks(config: Record<string, any>): Promis
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to update webhooks');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to update webhooks');
   }
 
-  const data = await res.json();
-  return data.webhooks || config;
+  const data = await safeJson(res, {});
+  return data?.webhooks || config;
 }
 
 /**
@@ -222,11 +223,11 @@ export async function testDiscordWebhook(category: string, webhookUrl?: string):
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to test webhook');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to test webhook');
   }
 
-  return res.json();
+  return safeJson(res, { success: true, message: 'Test webhook delivered successfully' });
 }
 
 /**
@@ -243,7 +244,7 @@ export async function fetchDailyMissionTemplate(): Promise<{
   if (!res.ok) {
     throw new Error('Failed to load Daily Mission template');
   }
-  return res.json();
+  return safeJson(res, null as any);
 }
 
 /**
@@ -264,7 +265,7 @@ export async function fetchPostDiscordTemplate(postId: string): Promise<{
   if (!res.ok) {
     throw new Error('Failed to load post Discord template');
   }
-  return res.json();
+  return safeJson(res, null as any);
 }
 
 /**
@@ -282,11 +283,11 @@ export async function publishNewsToDiscordWebhook(postId: string, updatedPayload
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to publish to Discord webhook');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to publish to Discord webhook');
   }
 
-  return res.json();
+  return safeJson(res, { success: true, message: 'Webhook published' });
 }
 
 /**
@@ -399,7 +400,7 @@ export async function fetchRanksList(forceRefresh: boolean = false): Promise<Ran
   try {
     const res = await fetch('/api/ranks');
     if (!res.ok) throw new Error('Failed to fetch ranks');
-    const ranks = await res.json();
+    const ranks = await safeJson(res, []);
     cachedRanks = ranks;
     return ranks;
   } catch (err) {
@@ -429,13 +430,13 @@ export async function updateRankConfig(id: string, updates: Partial<RankConfig>)
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to update rank');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to update rank');
   }
 
-  const result = await res.json();
-  if (result.ranks) cachedRanks = result.ranks;
-  return result.rank;
+  const result = await safeJson(res, {});
+  if (result?.ranks) cachedRanks = result.ranks;
+  return result?.rank || { id, ...updates };
 }
 
 /**
@@ -453,12 +454,12 @@ export async function updateAllRanks(ranks: RankConfig[]): Promise<RankConfig[]>
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to update ranks');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to update ranks');
   }
 
-  const result = await res.json();
-  const finalRanks: RankConfig[] = Array.isArray(result) ? result : (result.ranks || ranks);
+  const result = await safeJson(res, ranks);
+  const finalRanks: RankConfig[] = Array.isArray(result) ? result : (result?.ranks || ranks);
   cachedRanks = finalRanks;
   return finalRanks;
 }
@@ -473,7 +474,7 @@ export async function fetchDifficultyFrames(forceRefresh: boolean = false): Prom
   try {
     const res = await fetch('/api/frames');
     if (!res.ok) throw new Error('Failed to fetch difficulty frames');
-    const data = await res.json();
+    const data = await safeJson(res, DEFAULT_DIFFICULTY_FRAMES);
     cachedFrames = data;
     return data;
   } catch (err) {
@@ -497,12 +498,12 @@ export async function updateDifficultyFrames(frames: DifficultyFramesConfig): Pr
   });
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to update difficulty frames');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to update difficulty frames');
   }
 
-  const result = await res.json();
-  const finalFrames: DifficultyFramesConfig = result.frames || frames;
+  const result = await safeJson(res, {});
+  const finalFrames: DifficultyFramesConfig = result?.frames || frames;
   cachedFrames = finalFrames;
   return finalFrames;
 }
@@ -539,8 +540,8 @@ export const DEFAULT_SEED_SONGS: SongEntry[] = [
 export async function fetchUserProfile(identifier: string): Promise<User> {
   const res = await fetch(`/api/users/${encodeURIComponent(identifier)}`);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || 'Failed to fetch user profile');
+    const err = await safeJson(res, {});
+    throw new Error(err?.error || 'Failed to fetch user profile');
   }
-  return res.json();
+  return safeJson(res, null as any);
 }

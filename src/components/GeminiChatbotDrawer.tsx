@@ -15,6 +15,7 @@ import {
   Music
 } from 'lucide-react';
 import { ChatMessage, ChatRole, TaskComplexity } from '../types';
+import { safeJson } from '../utils/safeJson';
 
 interface GeminiChatbotDrawerProps {
   isOpen: boolean;
@@ -157,9 +158,9 @@ export const GeminiChatbotDrawer: React.FC<GeminiChatbotDrawerProps> = ({
         }),
       });
 
-      const data = await response.json();
+      const data = await safeJson(response, {});
       if (!response.ok) {
-        throw new Error(data.error || 'Chat request failed');
+        throw new Error(data?.error || 'Chat request failed');
       }
 
       const botMsg: ChatMessage = {

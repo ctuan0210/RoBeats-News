@@ -16,6 +16,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { AVATAR_FRAME_REWARDS, AvatarFrameReward } from '../types';
 import { UserAvatar } from './UserAvatar';
+import { safeJson } from '../utils/safeJson';
 
 interface StreakModalProps {
   isOpen: boolean;
@@ -117,8 +118,8 @@ export const StreakModal: React.FC<StreakModalProps> = ({
             Authorization: `Bearer ${token}`,
           },
         });
-        const data = await res.json();
-        if (data.success) {
+        const data = await safeJson(res, null);
+        if (data && data.success) {
           setCurrentStreak(data.currentStreak);
           setBestStreak(data.bestStreak);
           setLastCheckInDate(data.lastCheckInDate);
@@ -219,8 +220,8 @@ export const StreakModal: React.FC<StreakModalProps> = ({
           },
           body: JSON.stringify({ frameId: targetFrame || null }),
         });
-        const data = await res.json();
-        if (data.success) {
+        const data = await safeJson(res, null);
+        if (data && data.success) {
           setEquippedFrame(data.equippedAvatarFrame);
           await updateProfile({ equippedAvatarFrame: data.equippedAvatarFrame });
         }
