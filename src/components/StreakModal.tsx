@@ -148,8 +148,62 @@ export const StreakModal: React.FC<StreakModalProps> = ({
               equippedAvatarFrame: data.equippedAvatarFrame,
             });
           }
-        } else {
+        } else if (data && data.alreadyCheckedIn) {
           setCheckInMessage(data.message || 'Already checked in today!');
+        } else {
+          // Static hosting / 404 fallback (e.g. Cloudflare Pages without Express server)
+          const now = new Date();
+          const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+          const gmt8Now = new Date(utc - 8 * 3600000);
+          const todayStr = `${gmt8Now.getFullYear()}-${String(gmt8Now.getMonth() + 1).padStart(2, '0')}-${String(gmt8Now.getDate()).padStart(2, '0')}`;
+          const yesterdayDate = new Date(utc - 8 * 3600000 - 86400000);
+          const yStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+
+          if (lastCheckInDate === todayStr) {
+            setCheckInMessage('You have already checked in today! Come back tomorrow for the next streak day.');
+            return;
+          }
+
+          let nextStreak = 1;
+          if (lastCheckInDate === yStr) {
+            nextStreak = currentStreak + 1;
+          }
+
+          const nextBest = Math.max(bestStreak, nextStreak);
+          const nextFrames = new Set<string>(unlockedFrames);
+          const newlyAdded: string[] = [];
+
+          if (nextStreak >= 1 && !nextFrames.has('frame_novice')) { nextFrames.add('frame_novice'); newlyAdded.push('frame_novice'); }
+          if (nextStreak >= 3 && !nextFrames.has('frame_electro')) { nextFrames.add('frame_electro'); newlyAdded.push('frame_electro'); }
+          if (nextStreak >= 7 && !nextFrames.has('frame_gold')) { nextFrames.add('frame_gold'); newlyAdded.push('frame_gold'); }
+          if (nextStreak >= 14 && !nextFrames.has('frame_overdrive')) { nextFrames.add('frame_overdrive'); newlyAdded.push('frame_overdrive'); }
+          if (nextStreak >= 30 && !nextFrames.has('frame_cosmic')) { nextFrames.add('frame_cosmic'); newlyAdded.push('frame_cosmic'); }
+
+          const updatedFramesList = Array.from(nextFrames);
+          let nextEquipped = equippedFrame;
+          if (!nextEquipped && updatedFramesList.length > 0) {
+            nextEquipped = updatedFramesList[0];
+          }
+
+          setCurrentStreak(nextStreak);
+          setBestStreak(nextBest);
+          setLastCheckInDate(todayStr);
+          setUnlockedFrames(updatedFramesList);
+          if (nextEquipped) setEquippedFrame(nextEquipped);
+          setCheckInMessage(`🔥 Day ${nextStreak} streak claimed! Check-in successful.`);
+
+          if (newlyAdded.length > 0) {
+            const foundReward = AVATAR_FRAME_REWARDS.find(r => r.id === newlyAdded[newlyAdded.length - 1]);
+            if (foundReward) setNewlyUnlocked(foundReward);
+          }
+
+          await updateProfile({
+            currentStreak: nextStreak,
+            bestStreak: nextBest,
+            lastCheckInDate: todayStr,
+            unlockedFrames: updatedFramesList,
+            equippedAvatarFrame: nextEquipped || undefined,
+          });
         }
       } else {
         // Guest Local Check-in
@@ -224,6 +278,9 @@ export const StreakModal: React.FC<StreakModalProps> = ({
         if (data && data.success) {
           setEquippedFrame(data.equippedAvatarFrame);
           await updateProfile({ equippedAvatarFrame: data.equippedAvatarFrame });
+        } else {
+          setEquippedFrame(targetFrame);
+          await updateProfile({ equippedAvatarFrame: targetFrame });
         }
       } else {
         // Guest local storage

@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { CountdownBadge } from './components/CountdownTimer';
 import { safeJson } from './utils/safeJson';
+import { DEFAULT_SEED_ARTICLES } from './constants/seedArticles';
 
 const API_BASE_URL = 'https://robeats-d1-api.anh6052018.workers.dev';
 
@@ -101,10 +102,15 @@ export default function App() {
         }
       }
 
-      setPosts(loadedPosts || []);
+      // 3. Fallback to default seed articles if neither remote nor local returned posts (e.g. on static hosting like Cloudflare Pages)
+      if (!loadedPosts || loadedPosts.length === 0) {
+        loadedPosts = DEFAULT_SEED_ARTICLES;
+      }
+
+      setPosts(loadedPosts);
     } catch (err) {
       console.error('Failed to fetch posts', err);
-      setPosts([]);
+      setPosts(DEFAULT_SEED_ARTICLES);
     } finally {
       setIsLoadingPosts(false);
     }
