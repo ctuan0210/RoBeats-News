@@ -9,7 +9,7 @@ const projectRoot = import.meta.dirname || path.dirname(fileURLToPath(import.met
 export default defineConfig(() => {
   return {
     root: projectRoot,
-    base: '/RoBeats-News/', 
+    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
