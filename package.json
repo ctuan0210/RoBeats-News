@@ -19,8 +19,6 @@
     "@vitejs/plugin-react": "^5.2.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
-    "firebase": "^13.0.0",
-    "firebase-admin": "^14.5.0",
     "lucide-react": "^0.546.0",
     "marked": "^18.1.0",
     "motion": "^12.23.24",
@@ -37,7 +35,6 @@
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.3.3",
-    "tsx": "^4.21.0",
     "typescript": "^7.0.2"
   }
 }

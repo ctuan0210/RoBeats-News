@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, UserRole, UserPermissions } from '../types';
 import { safeJson } from '../utils/safeJson';
-import { db } from '../lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export const DEFAULT_HEAD_ADMIN: User = {
   id: 'usr_admin_meelo',
@@ -248,7 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return true;
         }
 
-        setAuthError('Account not found. On Cloudflare Pages, use @meelo / meelovn2005 or click "Sign Up" to register.');
+        setAuthError('Account not found. Please verify your credentials or click "Sign Up" to register.');
         return false;
       }
 
@@ -256,7 +254,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setAuthError(data?.error || 'Login failed. Please check credentials.');
       return false;
     } catch (err: any) {
-      // Network failure / Static host without server
+      // Network failure fallback
       if (isMasterMeeloPass) {
         const meeloUser = { ...DEFAULT_HEAD_ADMIN };
         const tok = `tok_usr_admin_meelo_${Date.now()}`;
@@ -284,7 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return true;
       }
 
-      setAuthError('Connection error. To login on Cloudflare Pages, log in as @meelo with password meelovn2005 or sign up.');
+      setAuthError('Connection error. Please check your network or verify your login credentials.');
       return false;
     } finally {
       setIsLoading(false);
@@ -365,20 +363,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const updatedUsers = [newUser, ...currentUsers.filter(u => u.username.toLowerCase() !== cleanUsername)];
         saveLocalUsersList(updatedUsers);
         setAllUsers(updatedUsers);
-
-        // Backup profile to Cloud Firestore if available
-        try {
-          if (db) {
-            await setDoc(doc(db, 'users', newId), {
-              uid: newId,
-              username: newUser.username,
-              displayName: newUser.displayName,
-              email: newUser.email,
-              role: newUser.role,
-              createdAt: newUser.createdAt,
-            }, { merge: true });
-          }
-        } catch {}
 
         const tok = `tok_${newUser.id}_${Date.now()}`;
         setUser(newUser);
@@ -475,24 +459,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           },
           body: JSON.stringify(profileData),
         });
-      } catch {}
-
-      // Also backup to Cloud Firestore if available
-      try {
-        if (db) {
-          await setDoc(doc(db, 'users', updatedUser.id), {
-            uid: updatedUser.id,
-            displayName: updatedUser.displayName,
-            bio: updatedUser.bio,
-            robloxUsername: updatedUser.robloxUsername,
-            roBeatsRank: updatedUser.roBeatsRank,
-            preferredNoteSpeed: updatedUser.preferredNoteSpeed,
-            equippedAvatarFrame: updatedUser.equippedAvatarFrame,
-            currentStreak: updatedUser.currentStreak,
-            bestStreak: updatedUser.bestStreak,
-            lastCheckInDate: updatedUser.lastCheckInDate,
-          }, { merge: true });
-        }
       } catch {}
     }
 

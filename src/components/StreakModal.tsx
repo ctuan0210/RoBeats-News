@@ -151,7 +151,7 @@ export const StreakModal: React.FC<StreakModalProps> = ({
         } else if (data && data.alreadyCheckedIn) {
           setCheckInMessage(data.message || 'Already checked in today!');
         } else {
-          // Static hosting / 404 fallback (e.g. Cloudflare Pages without Express server)
+          // Client-side fallback check-in calculation
           const now = new Date();
           const utc = now.getTime() + now.getTimezoneOffset() * 60000;
           const gmt8Now = new Date(utc - 8 * 3600000);

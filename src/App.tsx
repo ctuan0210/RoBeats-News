@@ -25,8 +25,6 @@ import { CountdownBadge } from './components/CountdownTimer';
 import { safeJson } from './utils/safeJson';
 import { DEFAULT_SEED_ARTICLES } from './constants/seedArticles';
 
-const API_BASE_URL = 'https://robeats-d1-api.anh6052018.workers.dev';
-
 export default function App() {
   const { user, token, isAuthenticated } = useAuth();
 
@@ -72,37 +70,18 @@ export default function App() {
       setIsLoadingPosts(true);
       let loadedPosts: NewsArticle[] | null = null;
 
-      // 1. Try external API if configured
-      if (API_BASE_URL) {
-        try {
-          const res = await fetch(`${API_BASE_URL}/api/news`);
-          if (res.ok) {
-            const data = await safeJson<NewsArticle[] | null>(res, null);
-            if (Array.isArray(data) && data.length > 0) {
-              loadedPosts = data;
-            }
+      try {
+        const res = await fetch('/api/news');
+        if (res.ok) {
+          const data = await safeJson<NewsArticle[] | null>(res, null);
+          if (Array.isArray(data) && data.length > 0) {
+            loadedPosts = data;
           }
-        } catch (err) {
-          console.warn('External D1 API fetch error, falling back to local server', err);
         }
+      } catch (err) {
+        console.warn('News fetch error, using fallback seed articles', err);
       }
 
-      // 2. Fallback to local server if external didn't provide posts
-      if (!loadedPosts) {
-        try {
-          const localRes = await fetch('/api/news');
-          if (localRes.ok) {
-            const localData = await safeJson<NewsArticle[] | null>(localRes, null);
-            if (Array.isArray(localData)) {
-              loadedPosts = localData;
-            }
-          }
-        } catch (localErr) {
-          console.warn('Local news fetch error', localErr);
-        }
-      }
-
-      // 3. Fallback to default seed articles if neither remote nor local returned posts (e.g. on static hosting like Cloudflare Pages)
       if (!loadedPosts || loadedPosts.length === 0) {
         loadedPosts = DEFAULT_SEED_ARTICLES;
       }
@@ -138,19 +117,6 @@ export default function App() {
 
   const handleDeletePost = async (id: string) => {
     try {
-      // Delete on external D1 API if configured
-      if (API_BASE_URL) {
-        try {
-          await fetch(`${API_BASE_URL}/api/news/${id}`, {
-            method: 'DELETE',
-            headers: {
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
-          });
-        } catch {}
-      }
-
-      // Also delete on local server
       const localRes = await fetch(`/api/news/${id}`, {
         method: 'DELETE',
         headers: {
